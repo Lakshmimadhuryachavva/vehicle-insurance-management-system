@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Customers - Admin</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/admin-header :: header('customers')"></div>
+
+<div class="container">
+    <h1 class="page-title">Customer Management</h1>
+    <p class="subtext">View and manage customer information</p>
+
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:900;font-size:18px;">Customer List</div>
+            <div style="color:var(--muted);font-size:13px;">
+                Total: <b th:text="${#lists.size(customers)}">0</b>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Customer ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Created</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${customers}">
+                <td th:text="${c.customerId}">1</td>
+                <td th:text="${c.name}">John Doe</td>
+                <td th:text="${c.email}">john@example.com</td>
+                <td th:text="${c.phone}">123</td>
+                <td th:text="${c.address}">Address</td>
+                <td th:text="${c.createdDate}">2026-01-01</td>
+            </tr>
+
+            <tr th:if="${#lists.isEmpty(customers)}">
+                <td colspan="6" style="color:var(--muted);">No customers found.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

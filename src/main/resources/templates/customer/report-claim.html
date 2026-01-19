@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Claim Report - Vehicle Insurance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/customer-header :: header('reports')"></div>
+
+<div class="container">
+    <h1 class="page-title">Claim Report</h1>
+    <p class="subtext">Detailed history of your claims</p>
+
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:900;font-size:18px;">Claim Report</div>
+            <a class="btn" th:href="@{/customer/reports/claims/pdf}">
+                <i class="bi bi-download"></i> Download PDF
+            </a>
+        </div>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Claim ID</th>
+                <th>Policy Number</th>
+                <th>Amount</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${claims}">
+                <td th:text="${c.claimId}"></td>
+                <td th:text="${c.policy.policyNumber}"></td>
+                <td th:text="${c.claimAmount}"></td>
+                <td th:text="${c.claimReason}"></td>
+                <td th:text="${c.claimDate}"></td>
+                <td>
+                    <span class="badge submitted" th:if="${c.claimStatus.name()=='SUBMITTED'}">SUBMITTED</span>
+                    <span class="badge approved" th:if="${c.claimStatus.name()=='APPROVED'}">APPROVED</span>
+                    <span class="badge rejected" th:if="${c.claimStatus.name()=='REJECTED'}">REJECTED</span>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(claims)}">
+                <td colspan="6" style="color:var(--muted);">No claims found.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="card" style="margin-top:16px;background:#f8faff;">
+            <div style="font-weight:900;margin-bottom:10px;">Report Summary</div>
+            <div class="form-row">
+                <div>
+                    <div style="color:var(--muted);">Total Claims</div>
+                    <div style="font-size:28px;font-weight:900;" th:text="${totalClaims}">0</div>
+                </div>
+                <div>
+                    <div style="color:var(--muted);">Approved Claims</div>
+                    <div style="font-size:28px;font-weight:900;" th:text="${approvedClaims}">0</div>
+                </div>
+            </div>
+            <div style="margin-top:12px;">
+                <div style="color:var(--muted);">Total Claimed</div>
+                <div style="font-size:30px;font-weight:900;" th:text="${totalClaimed}">0</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

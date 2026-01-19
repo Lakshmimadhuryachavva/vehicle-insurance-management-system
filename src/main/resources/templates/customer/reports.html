@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Reports - Vehicle Insurance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/customer-header :: header('reports')"></div>
+
+<div class="container">
+    <h1 class="page-title">Reports</h1>
+    <p class="subtext">Generate and view your insurance reports</p>
+
+    <div class="form-row">
+        <div class="card">
+            <div style="display:flex;gap:12px;align-items:center;">
+                <i class="bi bi-file-earmark-text" style="font-size:22px;color:var(--primary)"></i>
+                <div style="font-weight:900;font-size:18px;">Policy Report</div>
+            </div>
+            <p style="color:var(--muted);margin-top:10px;">
+                Generate a comprehensive report of all your insurance policies including coverage and premium.
+            </p>
+            <a class="btn btn-primary" th:href="@{/customer/reports/policies}" style="margin-top:10px;">
+                View Policy Report
+            </a>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;gap:12px;align-items:center;">
+                <i class="bi bi-file-earmark-check" style="font-size:22px;color:#16a34a"></i>
+                <div style="font-weight:900;font-size:18px;">Claim Report</div>
+            </div>
+            <p style="color:var(--muted);margin-top:10px;">
+                View a detailed history of all claims filed, including their status and amounts.
+            </p>
+            <a class="btn" th:href="@{/customer/reports/claims}" style="margin-top:10px;">
+                View Claim Report
+            </a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
