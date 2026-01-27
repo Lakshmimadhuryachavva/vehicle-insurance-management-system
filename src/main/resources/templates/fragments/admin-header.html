@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="header(active)">
+    <div style="background:var(--nav);color:#fff;">
+        <div class="container" style="padding:16px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <img th:src="@{/images/logo.svg}" alt="logo" style="filter:brightness(10); width:30px;height:30px;" src="">
+                    <div>
+                        <div style="font-weight:900;font-size:24px;line-height:1;">Admin Portal</div>
+                        <div style="opacity:.8;font-size:13px;">Vehicle Insurance Management</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <div style="opacity:.9;" th:text="'Welcome, ' + (${authEmail} ?: 'Admin')">Welcome</div>
+                    <form th:action="@{/logout}" method="post">
+                        <button class="btn" type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="topbar" style="border-top:none;">
+        <div class="container">
+            <nav class="nav">
+                <a th:classappend="${active=='dash'} ? 'active'" th:href="@{/admin/dashboard}">
+                    <i class="bi bi-grid"></i> Dashboard
+                </a>
+                <a th:classappend="${active=='customers'} ? 'active'" th:href="@{/admin/customers}">
+                    <i class="bi bi-people"></i> Customers
+                </a>
+                <a th:classappend="${active=='vehicles'} ? 'active'" th:href="@{/admin/vehicles}">
+                    <i class="bi bi-car-front"></i> Vehicles
+                </a>
+                <a th:classappend="${active=='policies'} ? 'active'" th:href="@{/admin/policies}">
+                    <i class="bi bi-file-earmark-text"></i> Policies
+                </a>
+                <a th:classappend="${active=='approvals'} ? 'active'" th:href="@{/admin/approvals}">
+                    <i class="bi bi-check2-square"></i> Approvals
+                </a>
+                <a th:classappend="${active=='reports'} ? 'active'" th:href="@{/admin/reports}">
+                    <i class="bi bi-bar-chart"></i> Reports
+                </a>
+            </nav>
+        </div>
+    </div>
+</div>
+</body>
+</html>

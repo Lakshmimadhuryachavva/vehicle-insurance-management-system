@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Edit Vehicle</title>
+
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+
+<body>
+
+<div th:replace="fragments/customer-header :: header('vehicles')"></div>
+
+<div class="container">
+    <h1 class="page-title">Edit Vehicle</h1>
+    <p class="subtext">Update your vehicle details</p>
+
+    <div class="card">
+        <form th:action="@{'/customer/vehicles/' + ${vehicle.vehicleId} + '/edit'}"
+              method="post">
+
+            <div class="form-row">
+                <div>
+                    <label>Registration Number</label>
+                    <input th:value="${vehicle.registrationNumber}" disabled>
+                </div>
+
+                <div>
+                    <label>Vehicle Type</label>
+                    <span class="badge vehicle-type"
+                          th:text="${vehicle.vehicleType}"
+                          th:classappend="' ' + ${vehicle.vehicleType.name().toLowerCase()}">
+                    </span>
+                </div>
+            </div>
+
+            <div class="form-row" style="margin-top:12px;">
+                <div>
+                    <label>Make</label>
+                    <input name="make" th:value="${vehicle.make}" required>
+                </div>
+                <div>
+                    <label>Model</label>
+                    <input name="model" th:value="${vehicle.model}" required>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;">
+                <label>Year of Manufacture</label>
+                <input name="yearOfManufacture"
+                       type="number"
+                       min="1980"
+                       max="2100"
+                       th:value="${vehicle.yearOfManufacture}"
+                       required>
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:10px;">
+                <button class="btn btn-primary">
+                    Save
+                </button>
+                <a class="btn" th:href="@{/customer/vehicles}">
+                    Back
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
