@@ -1,0 +1,695 @@
+{
+	"info": {
+		"_postman_id": "eed738b8-1785-44bc-aeaf-c1288ecfbae9",
+		"name": "VehicleInsurance&PolicyClaim",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33965473",
+		"_collection_link": "https://dark-spaceship-457461.postman.co/workspace/acec4286-b1ce-4b98-8fcb-42f58b84350d/collection/31701070-eed738b8-1785-44bc-aeaf-c1288ecfbae9?action=share&source=collection_link&creator=33965473"
+	},
+	"item": [
+		{
+			"name": "Customer API",
+			"item": [
+				{
+					"name": "Update Customer Profile",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"John Doe Updated\",\r\n  \"email\": \"john.updated@example.com\",\r\n  \"phone\": \"9876543210\",\r\n  \"address\": \"456 New St, City\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8099/customers/update/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"customers",
+								"update",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "RegisterCustomer",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Nani\",\r\n  \"email\": \"Nani@john.com\",\r\n  \"phone\": \"8326598898\",\r\n  \"address\": \"123 Main St, City\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8099/customers/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"customers",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer Details",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/customers/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"customers",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Customer Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/customers/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"customers",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Customer record",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/customers/delete/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"customers",
+								"delete",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Vehicles API",
+			"item": [
+				{
+					"name": "Add New Vehicle For Customer",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"registrationNumber\": \"TG07R2248\",\r\n    \"make\": \"Honda\",\r\n    \"model\": \"CB350\",\r\n    \"yearOfManufacture\": 2024,\r\n    \"vehicleType\": \"BIKE\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8099/vehicles/add/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"vehicles",
+								"add",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get-Vehicle-Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/vehicles/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"vehicles",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update-vehicle Details",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"registrationNumber\": \"TS07EK0044\",\r\n    \"make\": \"Suzuki\",\r\n    \"model\": \"Swift\",\r\n    \"yearOfManufacture\": 2024,\r\n    \"vehicleType\": \"CAR\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8099/vehicles/update/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"vehicles",
+								"update",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all vehicles for a customer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/vehicles/customer/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"vehicles",
+								"customer",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all vehicles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/vehicles/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"vehicles",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete vehicle from id",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/vehicles/delete/3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"vehicles",
+								"delete",
+								"3"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Policy API",
+			"item": [
+				{
+					"name": "Create new policy",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"policyNumber\": \"PN-TGX\",\r\n  \"coverageAmount\": 80000.00,\r\n  \"startDate\": \"2024-01-01\",\r\n  \"endDate\": \"2025-01-01\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8099/policies/create/4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"create",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Policy Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/policies/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Renew Policy",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/policies/renew/2?endDate=2029-01-01",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"renew",
+								"2"
+							],
+							"query": [
+								{
+									"key": "endDate",
+									"value": "2029-01-01"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all policies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/policies/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get policies by customer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/policies/customer/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"customer",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Active Policies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/policies/active",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"active"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Expired-Policies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/policies/expired",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"policies",
+								"expired"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Claim API",
+			"item": [
+				{
+					"name": "File a new Claim",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"claimAmount\": 5000.00,\r\n  \"claimReason\": \"Accident damage\",\r\n  \"claimDate\": \"2026-03-15\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8099/claims/file/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"file",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get a claim status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/claims/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Processing Claim status",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/claims/process/1?status=APPROVED",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"process",
+								"1"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "APPROVED"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all Claims",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/claims/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get claims by status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/claims/status/APPROVED",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"status",
+								"APPROVED"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get claims by policy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/claims/policy/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"policy",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get claims by customer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/claims/customer/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"claims",
+								"customer",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Report API",
+			"item": [
+				{
+					"name": "Generate Claim Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/reports/claims",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"reports",
+								"claims"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate policy report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/reports/policies",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"reports",
+								"policies"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Customer Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8099/reports/customer/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8099",
+							"path": [
+								"reports",
+								"customer",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

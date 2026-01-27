@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Reports - Admin</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/admin-header :: header('reports')"></div>
+
+<div class="container">
+    <h1 class="page-title">Reports</h1>
+    <p class="subtext">Generate comprehensive reports for analysis</p>
+
+    <!-- Generate report -->
+    <div class="card" style="margin-bottom:16px;">
+        <div style="font-weight:900;font-size:18px;margin-bottom:12px;">Generate Report</div>
+
+        <form method="get" th:action="@{/admin/reports}">
+            <div class="form-row">
+                <div>
+                    <label style="font-weight:800;">Report Type</label>
+                    <label>
+                        <select name="type">
+                            <option th:each="t : ${types}"
+                                    th:value="${t}"
+                                    th:selected="${t == type}"
+                                    th:text="${t}">CUSTOMER
+                            </option>
+                        </select>
+                    </label>
+                </div>
+
+                <div>
+                    <label style="font-weight:800;">Start Date</label>
+                    <label>
+                        <input type="date" name="startDate" th:value="${start}">
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row" style="margin-top:12px;">
+                <div>
+                    <label style="font-weight:800;">End Date</label>
+                    <label>
+                        <input type="date" name="endDate" th:value="${end}">
+                    </label>
+                </div>
+
+                <div style="display:flex;align-items:end;">
+                    <button class="btn btn-primary" type="submit" style="justify-content:center;flex:1;">
+                        Generate Report
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table + download -->
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+
+            <div style="display:flex;gap:10px;">
+                <a class="btn"
+                   th:href="@{/admin/reports/download/pdf(
+           type=${type},
+           startDate=${start},
+           endDate=${end}
+       )}">
+                    PDF
+                </a>
+
+                <a class="btn"
+                   th:href="@{/admin/reports/download/excel(
+           type=${type},
+           startDate=${start},
+           endDate=${end}
+       )}">
+                    Excel
+                </a>
+            </div>
+
+        </div>
+
+        <!-- CUSTOMER -->
+        <table class="table" th:if="${type.name() == 'CUSTOMER'}">
+            <thead>
+            <tr>
+                <th>Customer ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Created Date</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${rows}">
+                <td th:text="${c.customerId}"></td>
+                <td th:text="${c.name}"></td>
+                <td th:text="${c.email}"></td>
+                <td th:text="${c.phone}"></td>
+                <td th:text="${c.createdDate}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(rows)}">
+                <td colspan="5" style="color:var(--muted);">No results in selected date range.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- VEHICLE -->
+        <table class="table" th:if="${type.name() == 'VEHICLE'}">
+            <thead>
+            <tr>
+                <th>Vehicle ID</th><th>Reg No</th><th>Owner</th><th>Make</th><th>Model</th><th>Type</th><th>Created Date</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="v : ${rows}">
+                <td th:text="${v.vehicleId}"></td>
+                <td th:text="${v.registrationNumber}"></td>
+                <td th:text="${v.customer.name}"></td>
+                <td th:text="${v.make}"></td>
+                <td th:text="${v.model}"></td>
+                <td><span class="badge" style="background:#dbeafe;color:#1d4ed8;" th:text="${v.vehicleType}"></span></td>
+                <td th:text="${v.createdDate}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(rows)}">
+                <td colspan="7" style="color:var(--muted);">No results in selected date range.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- POLICY -->
+        <table class="table" th:if="${type.name() == 'POLICY'}">
+            <thead>
+            <tr>
+                <th>Policy No</th><th>Customer</th><th>Vehicle</th><th>Coverage</th><th>Premium</th><th>Start</th><th>End</th><th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${rows}">
+                <td th:text="${p.policyNumber}"></td>
+                <td th:text="${p.vehicle.customer.name}"></td>
+                <td th:text="${p.vehicle.make + ' ' + p.vehicle.model + ' (' + p.vehicle.registrationNumber + ')'}"></td>
+                <td th:text="${p.coverageAmount}"></td>
+                <td th:text="${p.premiumAmount}"></td>
+                <td th:text="${p.startDate}"></td>
+                <td th:text="${p.endDate}"></td>
+                <td>
+                    <span class="badge active" th:if="${p.policyStatus.name()=='ACTIVE'}">ACTIVE</span>
+                    <span class="badge" style="background:#f3f4f6;color:#111827;" th:if="${p.policyStatus.name()=='EXPIRED'}">EXPIRED</span>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(rows)}">
+                <td colspan="8" style="color:var(--muted);">No results in selected date range.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- CLAIM -->
+        <table class="table" th:if="${type.name() == 'CLAIM'}">
+            <thead>
+            <tr>
+                <th>Claim ID</th><th>Policy No</th><th>Customer</th><th>Amount</th><th>Reason</th><th>Date</th><th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${rows}">
+                <td th:text="${c.claimId}"></td>
+                <td th:text="${c.policy.policyNumber}"></td>
+                <td th:text="${c.policy.vehicle.customer.name}"></td>
+                <td th:text="${c.claimAmount}"></td>
+                <td th:text="${c.claimReason}"></td>
+                <td th:text="${c.claimDate}"></td>
+                <td>
+                    <span class="badge submitted" th:if="${c.claimStatus.name()=='SUBMITTED'}">SUBMITTED</span>
+                    <span class="badge approved" th:if="${c.claimStatus.name()=='APPROVED'}">APPROVED</span>
+                    <span class="badge rejected" th:if="${c.claimStatus.name()=='REJECTED'}">REJECTED</span>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(rows)}">
+                <td colspan="7" style="color:var(--muted);">No results in selected date range.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- Summary -->
+        <div class="card" style="margin-top:16px;background:#f8faff;">
+            <div style="font-weight:900;margin-bottom:10px;">Report Summary</div>
+
+            <div class="form-row">
+                <div>
+                    <div style="color:var(--muted);">Total Rows</div>
+                    <div style="font-size:28px;font-weight:900;" th:text="${count}">0</div>
+                </div>
+
+                <div th:if="${type.name()=='POLICY'}">
+                    <div style="color:var(--muted);">Active Policies</div>
+                    <div style="font-size:28px;font-weight:900;" th:text="${activeCount}">0</div>
+                </div>
+
+                <div th:if="${type.name()=='CLAIM'}">
+                    <div style="color:var(--muted);">Approved Claims</div>
+                    <div style="font-size:28px;font-weight:900;" th:text="${approvedCount}">0</div>
+                </div>
+            </div>
+
+            <div th:if="${type.name()=='POLICY'}" style="margin-top:12px;">
+                <div style="color:var(--muted);">Total Premium</div>
+                <div style="font-size:30px;font-weight:900;" th:text="${totalPremium}">0</div>
+            </div>
+
+            <div th:if="${type.name()=='CLAIM'}" style="margin-top:12px;">
+                <div style="color:var(--muted);">Total Claimed</div>
+                <div style="font-size:30px;font-weight:900;" th:text="${totalClaimed}">0</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

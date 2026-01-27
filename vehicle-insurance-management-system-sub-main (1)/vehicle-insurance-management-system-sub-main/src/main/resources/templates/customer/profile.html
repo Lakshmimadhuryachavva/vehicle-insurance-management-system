@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Profile - Vehicle Insurance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/customer-header :: header('')"></div>
+
+<div class="container">
+    <h1 class="page-title">Profile</h1>
+    <p class="subtext">Update your personal information</p>
+
+    <div th:if="${param.saved}" class="alert success" style="margin-bottom:14px;">Profile updated successfully!</div>
+
+    <div class="card">
+        <form th:action="@{/customer/profile}" method="post">
+            <div class="form-row">
+                <div>
+                    <label style="font-weight:800;">Name</label>
+                    <label>
+                        <input name="name" th:value="${customer.name}" required>
+                    </label>
+                </div>
+                <div>
+                    <label style="font-weight:800;">Email</label>
+                    <label>
+                        <input th:value="${customer.email}" disabled>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row" style="margin-top:12px;">
+                <div>
+                    <label style="font-weight:800;">Phone</label>
+                    <label>
+                        <input name="phone" th:value="${customer.phone}">
+                    </label>
+                </div>
+                <div>
+                    <label style="font-weight:800;">Address</label>
+                    <label>
+                        <input name="address" th:value="${customer.address}">
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="margin-top:14px;" type="submit">
+                Save Changes
+            </button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
