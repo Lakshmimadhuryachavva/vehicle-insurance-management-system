@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Register - Vehicle Insurance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="auth-wrap">
+
+<div class="auth-card">
+    <div class="auth-head">
+        <img th:src="@{/images/logo.svg}" alt="logo" src=""/>
+        <div>
+            <h1 class="auth-title">Create Account</h1>
+            <div class="auth-sub">Register to manage vehicles, policies and claims</div>
+        </div>
+    </div>
+
+    <div th:if="${error}" class="alert error" style="margin-bottom:12px;" th:text="${error}">Error</div>
+
+    <form th:action="@{/customer/register}" method="post">
+        <div class="form-row">
+            <div>
+                <label style="font-weight:800;">Full Name</label>
+                <label>
+                    <input name="name" placeholder="Enter your name" required>
+                </label>
+            </div>
+            <div>
+                <label style="font-weight:800;">Email</label>
+                <label>
+                    <input name="email" type="email" placeholder="Enter your email" required>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-row" style="margin-top:12px;">
+            <div>
+                <label style="font-weight:800;">Phone</label>
+                <label>
+                    <input name="phone" placeholder="Enter your phone">
+                </label>
+            </div>
+            <div>
+                <label style="font-weight:800;">Password</label>
+                <label>
+                    <input name="password" type="password" placeholder="Create a password" required>
+                </label>
+            </div>
+        </div>
+
+        <div style="margin-top:12px;">
+            <label style="font-weight:800;">Address</label>
+            <label>
+                <input name="address" placeholder="Enter your address">
+            </label>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:14px;" type="submit">
+            Register
+        </button>
+    </form>
+
+    <div class="auth-footer">
+        Already have an account?
+        <a th:href="@{/customer/login}" style="color:var(--primary);font-weight:800;">Login</a>
+    </div>
+</div>
+
+</body>
+</html>

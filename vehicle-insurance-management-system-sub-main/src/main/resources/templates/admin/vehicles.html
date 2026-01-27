@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Vehicles - Admin</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/admin-header :: header('vehicles')"></div>
+
+<div class="container">
+    <h1 class="page-title">Vehicle Management</h1>
+    <p class="subtext">View and manage all registered vehicles</p>
+
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:900;font-size:18px;">Vehicle List</div>
+            <div style="color:var(--muted);font-size:13px;">
+                Total: <b th:text="${#lists.size(vehicles)}">0</b>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Vehicle ID</th>
+                <th>Registration Number</th>
+                <th>Owner</th>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Year</th>
+                <th>Type</th>
+                <th>Created</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="v : ${vehicles}">
+                <td th:text="${v.vehicleId}">1</td>
+                <td th:text="${v.registrationNumber}">ABC123</td>
+                <td th:text="${v.customer.name}">John Doe</td>
+                <td th:text="${v.make}">Toyota</td>
+                <td th:text="${v.model}">Camry</td>
+                <td th:text="${v.yearOfManufacture}">2020</td>
+                <td><span class="badge" style="background:#dbeafe;color:#1d4ed8;" th:text="${v.vehicleType}">CAR</span></td>
+                <td th:text="${v.createdDate}">2026-01-01</td>
+            </tr>
+
+            <tr th:if="${#lists.isEmpty(vehicles)}">
+                <td colspan="8" style="color:var(--muted);">No vehicles found.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

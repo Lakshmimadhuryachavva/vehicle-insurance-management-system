@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Claims - Vehicle Insurance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div th:replace="fragments/customer-header :: header('claims')"></div>
+
+<div class="container">
+    <h1 class="page-title">My Claims</h1>
+    <p class="subtext">File and track your insurance claims</p>
+
+    <div th:if="${param.submitted}" class="alert success" style="margin-bottom:14px;">Claim submitted successfully!</div>
+
+    <div class="card" style="margin-bottom:16px;">
+        <div style="font-weight:900;font-size:18px;margin-bottom:12px;">
+            <i class="bi bi-send"></i> File New Claim
+        </div>
+
+        <form th:action="@{/customer/claims/file}" method="post">
+            <div class="form-row">
+                <div>
+                    <label style="font-weight:800;">Policy</label>
+                    <label>
+                        <select name="policyId" required>
+                            <option value="" disabled selected>Select policy</option>
+                            <option th:each="p : ${policies}" th:value="${p.policyId}" th:text="${p.policyNumber}"></option>
+                        </select>
+                    </label>
+                </div>
+                <div>
+                    <label style="font-weight:800;">Claim Amount</label>
+                    <label>
+                        <input name="claimAmount" type="number" min="1" step="1" placeholder="5000" required>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;">
+                <label style="font-weight:800;">Claim Reason</label>
+                <label>
+                    <textarea name="claimReason" placeholder="Describe the reason for your claim..." required></textarea>
+                </label>
+            </div>
+
+            <button class="btn btn-primary" style="margin-top:14px;" type="submit">
+                <i class="bi bi-plus"></i> Submit Claim
+            </button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div style="font-weight:900;font-size:18px;margin-bottom:12px;">Claims Status</div>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Claim ID</th>
+                <th>Policy Number</th>
+                <th>Amount</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${claims}">
+                <td th:text="${c.claimId}">1</td>
+                <td th:text="${c.policy.policyNumber}">POL</td>
+                <td th:text="${c.claimAmount}">5000</td>
+                <td th:text="${c.claimReason}">Reason</td>
+                <td th:text="${c.claimDate}">2024-06-15</td>
+                <td>
+                    <span class="badge submitted" th:if="${c.claimStatus.name()=='SUBMITTED'}">SUBMITTED</span>
+                    <span class="badge approved" th:if="${c.claimStatus.name()=='APPROVED'}">APPROVED</span>
+                    <span class="badge rejected" th:if="${c.claimStatus.name()=='REJECTED'}">REJECTED</span>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(claims)}">
+                <td colspan="6" style="color:var(--muted);">No claims found.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

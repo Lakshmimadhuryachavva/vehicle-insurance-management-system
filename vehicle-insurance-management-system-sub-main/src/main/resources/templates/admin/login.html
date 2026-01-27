@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Admin Login - Vehicle Insurance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="stylesheet" href="https://cdn.misdeliver.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="auth-wrap" style="background: radial-gradient(900px 500px at 50% 0%, #102a56, transparent), linear-gradient(#0b1220, #0b1220);">
+
+<div class="auth-card" style="border:none;">
+    <div class="auth-head">
+        <img th:src="@{/images/logo.svg}" alt="logo" style="filter:brightness(10);" src=""/>
+        <div>
+            <h1 class="auth-title">Admin Portal</h1>
+            <div class="auth-sub">Login to approve/reject claims and manage data</div>
+        </div>
+    </div>
+
+    <div th:if="${param.error}" class="alert error" style="margin-bottom:12px;">
+        Invalid admin credentials.
+    </div>
+
+    <form th:action="@{/login}" method="post">
+        <input type="hidden" name="portal" value="admin"/>
+        <div style="margin-bottom:12px;">
+            <label style="font-weight:800;">Email</label>
+            <label>
+                <input name="username" type="email" placeholder="admin@insurance.com" required>
+            </label>
+        </div>
+
+        <div style="margin-bottom:14px;">
+            <label style="font-weight:800;">Password</label>
+            <label>
+                <input name="password" type="password" placeholder="Enter your password" required>
+            </label>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" type="submit">
+            Login to Admin Panel
+        </button>
+    </form>
+
+    <div class="card" style="margin-top:14px;background:#f8faff;">
+        <div style="font-weight:900;margin-bottom:8px;">Demo Credentials</div>
+        <div style="color:var(--muted);font-size:14px;">
+            Email: <b>admin@insurance.com</b><br/>
+            Password: <b>admin123</b>
+        </div>
+    </div>
+
+    <div class="auth-footer">
+        Customer?
+        <a th:href="@{/customer/login}" style="color:var(--primary);font-weight:800;">Customer Login</a>
+    </div>
+</div>
+
+</body>
+</html>
