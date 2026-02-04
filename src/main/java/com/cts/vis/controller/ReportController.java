@@ -1,11 +1,6 @@
 package com.cts.vis.controller;
 
-import com.cts.vis.dto.ReportDTO;
-import com.cts.vis.model.Claim;
-import com.cts.vis.model.Policy;
 import com.cts.vis.service.ReportService;
-import com.cts.vis.util.ExcelExporter;
-import com.cts.vis.util.PdfExporter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,100 +8,73 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-
-import java.util.List;
-import java.util.Map;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
+@RequestMapping("/customer/reports")
 @RequiredArgsConstructor
 public class ReportController {
 
     private final ReportService reportService;
 
-    @GetMapping("/customer/reports")
-    public String reportsHome(Model model) {
-        model.addAttribute("filter", new ReportDTO.CustomerFilterRequest());
+    // PAGE: /customer/reports
+    @GetMapping
+    public String reportsHome() {
         return "customer/reports";
     }
 
-    @GetMapping("/customer/reports/policies")
-    public String policyReport(@ModelAttribute("filter") ReportDTO.CustomerFilterRequest filter,
-                               Model model) {
-
-        model.addAllAttributes(reportService.customerPolicyReport());
+    // PAGE: /customer/reports/policies
+    @GetMapping("/policies")
+    public String policyReportPage(Model model) {
+        var data = reportService.customerPolicyReport();
+        model.addAllAttributes(data);
         return "customer/report-policy";
     }
 
-    @GetMapping("/customer/reports/claims")
-    public String claimReport(@ModelAttribute("filter") ReportDTO.CustomerFilterRequest filter,
-                              Model model) {
-
-        model.addAllAttributes(reportService.customerClaimReport());
+    // PAGE: /customer/reports/claims
+    @GetMapping("/claims")
+    public String claimReportPage(Model model) {
+        var data = reportService.customerClaimReport();
+        model.addAllAttributes(data);
         return "customer/report-claim";
     }
 
-    @GetMapping("/customer/reports/policies/pdf")
-    public ResponseEntity<byte[]> policyPdf(
-            @ModelAttribute ReportDTO.CustomerFilterRequest filter) {
-
-        Map<String, Object> data = reportService.customerPolicyReport();
-        List<Policy> policies = (List<Policy>) data.get("policies");
-
-        byte[] pdf = PdfExporter.exportCustomerPolicyReport(policies, data);
-
+    // DOWNLOADS
+    @GetMapping("/policies/pdf")
+    public ResponseEntity<byte[]> policyPdf() {
+        byte[] pdf = reportService.customerPolicyPdf();
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=POLICY_REPORT.pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=POLICY_REPORT.pdf")
                 .body(pdf);
     }
 
-    @GetMapping("/customer/reports/claims/pdf")
-    public ResponseEntity<byte[]> claimPdf(
-            @ModelAttribute ReportDTO.CustomerFilterRequest filter) {
-
-        Map<String, Object> data = reportService.customerClaimReport();
-        List<Claim> claims = (List<Claim>) data.get("claims");
-
-        byte[] pdf = PdfExporter.exportCustomerClaimReport(claims, data);
-
+    @GetMapping("/policies/excel")
+    public ResponseEntity<byte[]> policyExcel() {
+        byte[] excel = reportService.customerPolicyExcel();
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=CLAIM_REPORT.pdf")
-                .body(pdf);
-    }
-
-    @GetMapping("/customer/reports/policies/excel")
-    public ResponseEntity<byte[]> policyExcel(
-            @ModelAttribute ReportDTO.CustomerFilterRequest filter) {
-
-        Map<String, Object> data = reportService.customerPolicyReport();
-        List<Policy> policies = (List<Policy>) data.get("policies");
-
-        byte[] excel = ExcelExporter.exportCustomerPolicyReport(policies, data);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=POLICY_REPORT.xlsx")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=POLICY_REPORT.xlsx")
                 .body(excel);
     }
 
-    @GetMapping("/customer/reports/claims/excel")
-    public ResponseEntity<byte[]> claimExcel(
-            @ModelAttribute ReportDTO.CustomerFilterRequest filter) {
-
-        Map<String, Object> data = reportService.customerClaimReport();
-        List<Claim> claims = (List<Claim>) data.get("claims");
-
-        byte[] excel = ExcelExporter.exportCustomerClaimReport(claims, data);
-
+    @GetMapping("/claims/pdf")
+    public ResponseEntity<byte[]> claimPdf() {
+        byte[] pdf = reportService.customerClaimPdf();
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=CLAIM_REPORT.xlsx")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CLAIM_REPORT.pdf")
+                .body(pdf);
+    }
+
+    @GetMapping("/claims/excel")
+    public ResponseEntity<byte[]> claimExcel() {
+        byte[] excel = reportService.customerClaimExcel();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CLAIM_REPORT.xlsx")
                 .body(excel);
     }
 }

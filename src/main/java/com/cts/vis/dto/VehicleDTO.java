@@ -48,18 +48,19 @@ public class VehicleDTO {
     @Data
     public static class UpdateRequest {
 
-        @NotBlank(message = "Make is required")
+        @NotBlank(message = "Registration number is required")
         @Pattern(
-                regexp = "^[A-Za-z ]+$",
-                message = "Make must contain only letters"
+                regexp = "^[A-Z0-9]{5,12}$",
+                message = "Registration number must contain only uppercase letters and numbers"
         )
+        private String registrationNumber;
+
+        @NotBlank(message = "Make is required")
+        @Pattern(regexp = "^[A-Za-z ]+$", message = "Make must contain only letters")
         private String make;
 
         @NotBlank(message = "Model is required")
-        @Pattern(
-                regexp = "^[A-Za-z0-9 ]+$",
-                message = "Model can contain letters and numbers"
-        )
+        @Pattern(regexp = "^[A-Za-z0-9 ]+$", message = "Model can contain letters and numbers")
         private String model;
 
         @NotNull(message = "Year of manufacture is required")

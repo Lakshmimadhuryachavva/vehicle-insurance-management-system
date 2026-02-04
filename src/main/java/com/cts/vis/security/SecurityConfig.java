@@ -1,22 +1,159 @@
+//package com.cts.vis.security;
+//
+//import com.cts.vis.model.UserRole;
+//import jakarta.servlet.ServletException;
+//import jakarta.servlet.http.HttpServletRequest;
+//import jakarta.servlet.http.HttpServletResponse;
+//import lombok.RequiredArgsConstructor;
+//import org.springframework.context.annotation.Bean;
+//import org.springframework.context.annotation.Configuration;
+//import org.springframework.core.annotation.Order;
+//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+//import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+//import org.springframework.security.core.Authentication;
+//import org.springframework.security.core.GrantedAuthority;
+//import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+//import org.springframework.security.crypto.password.PasswordEncoder;
+//import org.springframework.security.web.SecurityFilterChain;
+//import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+//import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+//
+//import java.io.IOException;
+//
+//@Configuration
+//@EnableWebSecurity
+//@RequiredArgsConstructor
+//public class SecurityConfig {
+//
+//    private final CustomUserDetailsService userDetailsService;
+//
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
+//
+//    /**
+//     * Replaces Streams with a simple for-each loop to check roles.
+//     */
+//    private boolean isRole(Authentication auth, UserRole role) {
+//        if (auth == null || auth.getAuthorities() == null) {
+//            return false;
+//        }
+//        for (GrantedAuthority authority : auth.getAuthorities()) {
+//            if (authority.getAuthority().equals(role.name())) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
+//
+//    /**
+//     * Handles manual logout and redirection.
+//     */
+//    private void handleRoleMismatch(HttpServletRequest req, HttpServletResponse res, Authentication auth, String redirectUrl) throws IOException {
+//        new SecurityContextLogoutHandler().logout(req, res, auth);
+//        res.sendRedirect(redirectUrl);
+//    }
+//
+//    @Bean
+//    @Order(1)
+//    public SecurityFilterChain adminChain(HttpSecurity http) throws Exception {
+//        http.securityMatcher("/admin/**");
+//
+//        http.authorizeHttpRequests(auth -> auth
+//                .requestMatchers("/admin/login").permitAll()
+//                .anyRequest().hasRole("ADMIN")
+//        );
+//
+//        http.formLogin(login -> login
+//                .loginPage("/admin/login")
+//                .loginProcessingUrl("/admin/login")
+//                // Replaced Lambda with Anonymous Inner Class
+//                .successHandler(new AuthenticationSuccessHandler() {
+//                    @Override
+//                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+//                        if (isRole(authentication, UserRole.ROLE_ADMIN)) {
+//                            response.sendRedirect("/admin/dashboard");
+//                        } else {
+//                            handleRoleMismatch(request, response, authentication, "/admin/login?error=onlyAdmin");
+//                        }
+//                    }
+//                })
+//                .failureUrl("/admin/login?error=true")
+//        );
+//
+//        http.logout(logout -> logout
+//                .logoutUrl("/admin/logout")
+//                .logoutSuccessUrl("/admin/login?logout=true")
+//        );
+//
+//        return http.build();
+//    }
+//
+//    @Bean
+//    @Order(2)
+//    public SecurityFilterChain customerChain(HttpSecurity http) throws Exception {
+//        http.securityMatcher("/**");
+//
+//        http.csrf(csrf -> csrf.ignoringRequestMatchers("/customer/register"));
+//
+//        http.authorizeHttpRequests(auth -> auth
+//                .requestMatchers("/", "/error", "/customer/login", "/customer/register", "/css/**", "/images/**", "/js/**").permitAll()
+//                .requestMatchers("/customer/**").hasRole("CUSTOMER")
+//                .anyRequest().authenticated()
+//        );
+//
+//        http.formLogin(login -> login
+//                .loginPage("/customer/login")
+//                .loginProcessingUrl("/customer/login")
+//                // Replaced Lambda with Anonymous Inner Class
+//                .successHandler(new AuthenticationSuccessHandler() {
+//                    @Override
+//                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+//                        if (isRole(authentication, UserRole.ROLE_CUSTOMER)) {
+//                            response.sendRedirect("/customer/dashboard");
+//                        } else {
+//                            handleRoleMismatch(request, response, authentication, "/customer/login?error=onlyCustomer");
+//                        }
+//                    }
+//                })
+//                .failureUrl("/customer/login?error=true")
+//        );
+//
+//        http.logout(logout -> logout
+//                .logoutUrl("/customer/logout")
+//                .logoutSuccessUrl("/customer/login?logout=true")
+//        );
+//
+//        http.userDetailsService(userDetailsService);
+//
+//        return http.build();
+//    }
+//}
 package com.cts.vis.security;
 
 import com.cts.vis.model.UserRole;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 
+import java.io.IOException;
+
 @Configuration
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -27,59 +164,60 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public DaoAuthenticationProvider authProvider(PasswordEncoder encoder) {
-        DaoAuthenticationProvider p = new DaoAuthenticationProvider();
-        p.setUserDetailsService(userDetailsService);
-        p.setPasswordEncoder(encoder);
-        return p;
+    /**
+     * Checks if the authenticated user has a specific role.
+     */
+    private boolean isRole(Authentication auth, UserRole role) {
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+        for (GrantedAuthority authority : auth.getAuthorities()) {
+            if (authority.getAuthority().equals(role.name())) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    private void forceLogout(HttpServletRequest request, HttpServletResponse response, Authentication auth) {
-        new SecurityContextLogoutHandler().logout(request, response, auth);
-    }
-
-    private boolean hasRole(Authentication auth, UserRole role) {
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals(role.name()));
+    /**
+     * Log out users who attempt to access the wrong portal (e.g., Admin trying to log into Customer portal).
+     */
+    private void handleRoleMismatch(HttpServletRequest req, HttpServletResponse res, Authentication auth, String redirectUrl) throws IOException {
+        new SecurityContextLogoutHandler().logout(req, res, auth);
+        res.sendRedirect(redirectUrl);
     }
 
     // ======================= ADMIN SECURITY CHAIN =======================
     @Bean
     @Order(1)
     public SecurityFilterChain adminChain(HttpSecurity http) throws Exception {
-
         http.securityMatcher("/admin/**");
 
-        http.csrf(Customizer.withDefaults());
-
-        http.authenticationProvider(authProvider(passwordEncoder()));
-
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/login", "/css/**", "/images/**", "/js/**").permitAll()
+                .requestMatchers("/admin/login").permitAll()
                 .anyRequest().hasRole("ADMIN")
         );
 
         http.formLogin(login -> login
                 .loginPage("/admin/login")
-                .loginProcessingUrl("/admin/login")     // ✅ admin form POSTS here
-                .successHandler((request, response, authentication) -> {
-                    // ✅ Only ADMIN can login via admin portal
-                    if (!hasRole(authentication, UserRole.ROLE_ADMIN)) {
-                        forceLogout(request, response, authentication);
-                        response.sendRedirect("/admin/login?error=onlyAdmin");
-                        return;
+                .loginProcessingUrl("/admin/login")
+                .successHandler(new AuthenticationSuccessHandler() {
+                    @Override
+                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+                        if (isRole(authentication, UserRole.ROLE_ADMIN)) {
+                            response.sendRedirect("/admin/dashboard");
+                        } else {
+                            handleRoleMismatch(request, response, authentication, "/admin/login?error=onlyAdmin");
+                        }
                     }
-                    response.sendRedirect("/admin/dashboard");
                 })
+                // Triggered for unregistered admins or wrong passwords
                 .failureUrl("/admin/login?error=true")
-                .permitAll()
         );
 
         http.logout(logout -> logout
                 .logoutUrl("/admin/logout")
                 .logoutSuccessUrl("/admin/login?logout=true")
-                .permitAll()
         );
 
         return http.build();
@@ -89,46 +227,43 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain customerChain(HttpSecurity http) throws Exception {
-
         http.securityMatcher("/**");
 
-        http.csrf(Customizer.withDefaults());
-
-        http.authenticationProvider(authProvider(passwordEncoder()));
+        // Disable CSRF for registration endpoint as per your previous requirement
+        http.csrf(csrf -> csrf.ignoringRequestMatchers("/customer/register"));
 
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                        "/", "/customer/login", "/customer/register",
-                        "/css/**", "/images/**", "/js/**"
-                ).permitAll()
-
-                // ✅ customer pages ONLY customer
+                .requestMatchers("/", "/error", "/customer/login", "/customer/register", "/css/**", "/images/**", "/js/**").permitAll()
                 .requestMatchers("/customer/**").hasRole("CUSTOMER")
-
                 .anyRequest().authenticated()
         );
 
         http.formLogin(login -> login
                 .loginPage("/customer/login")
-                .loginProcessingUrl("/customer/login")  // ✅ customer form POSTS here
-                .successHandler((request, response, authentication) -> {
-                    // ✅ Only CUSTOMER can login via customer portal
-                    if (!hasRole(authentication, UserRole.ROLE_CUSTOMER)) {
-                        forceLogout(request, response, authentication);
-                        response.sendRedirect("/customer/login?error=onlyCustomer");
-                        return;
+                .loginProcessingUrl("/customer/login")
+                .successHandler(new AuthenticationSuccessHandler() {
+                    @Override
+                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+                        if (isRole(authentication, UserRole.ROLE_CUSTOMER)) {
+                            response.sendRedirect("/customer/dashboard");
+                        } else {
+                            // If an Admin accidentally logs in here, kick them out and show error
+                            handleRoleMismatch(request, response, authentication, "/customer/login?error=onlyCustomer");
+                        }
                     }
-                    response.sendRedirect("/customer/dashboard");
                 })
+                // ✅ CRITICAL: This handles unregistered customers and wrong passwords.
+                // It appends ?error=true to the URL, which your HTML alert will detect.
                 .failureUrl("/customer/login?error=true")
-                .permitAll()
         );
 
         http.logout(logout -> logout
                 .logoutUrl("/customer/logout")
                 .logoutSuccessUrl("/customer/login?logout=true")
-                .permitAll()
         );
+
+        // Tell Spring Security to use your custom DB service for looking up users
+        http.userDetailsService(userDetailsService);
 
         return http.build();
     }

@@ -1,5 +1,6 @@
 package com.cts.vis.dto;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -23,6 +24,10 @@ public class PolicyDTO {
         @NotNull(message = "Start date is required")
         @FutureOrPresent(message = "Start date must be today or future")
         private LocalDate startDate;
+
+        @NotNull(message = "End date is required")
+        @Future(message = "End date must be a future date")
+        private LocalDate endDate;   // ✅ added
     }
 
     @Data

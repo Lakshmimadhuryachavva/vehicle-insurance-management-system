@@ -8,4 +8,11 @@ public interface ReportService {
     Map<String, Object> customerClaimReport();
 
     Map<String, Object> adminDashboardStats();
+
+    // export methods (add these)
+    byte[] customerPolicyPdf();
+    byte[] customerPolicyExcel();
+
+    byte[] customerClaimPdf();
+    byte[] customerClaimExcel();
 }

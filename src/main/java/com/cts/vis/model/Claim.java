@@ -12,7 +12,8 @@ import java.time.LocalDate;
 @NoArgsConstructor @AllArgsConstructor @Builder
 public class Claim {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long claimId;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

@@ -23,4 +23,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
+
+    @Builder.Default
+    @Column(name = "isActive", nullable = false)
+    private Boolean isActive = true;
 }
