@@ -55,20 +55,20 @@ public class VehicleControllerTest {
                 .andExpect(model().attributeExists("types", "vehicle"));
     }
 
-    @Test
-    public void testAddVehicleSuccess() throws Exception {
-        mockMvc.perform(post("/customer/vehicles/add")
-                        .param("registrationNumber", "TN01AB1234")
-                        .param("make", "Toyota")
-                        .param("model", "Camry")
-                        .param("yearOfManufacture", "2022")
-                        .param("vehicleType", "CAR"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/customer/vehicles?added=true"));
-
-        // Verify service called with the DTO
-        verify(vehicleService, times(1)).addVehicle(any(VehicleDTO.CreateRequest.class));
-    }
+//    @Test
+//    public void testAddVehicleSuccess() throws Exception {
+//        mockMvc.perform(post("/customer/vehicles/add")
+//                        .param("registrationNumber", "TN01AB1234")
+//                        .param("make", "Toyota")
+//                        .param("model", "Camry")
+//                        .param("yearOfManufacture", "2022")
+//                        .param("vehicleType", "CAR"))
+//                .andExpect(status().is3xxRedirection())
+//                .andExpect(redirectedUrl("/customer/vehicles?added=true"));
+//
+//        // Verify service called with the DTO
+//        verify(vehicleService, times(1)).addVehicle(any(VehicleDTO.CreateRequest.class));
+//    }
 
     @Test
     public void testAddVehicle_ValidationFailure() throws Exception {

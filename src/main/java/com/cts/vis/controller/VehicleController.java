@@ -31,12 +31,19 @@ public class VehicleController {
         if (result.hasErrors()) {
             return refreshIndex(model, dto);
         }
-
+        try {
+            vehicleService.addVehicle(dto);
+        } catch (IllegalArgumentException ex) {
+            result.rejectValue("registrationNumber", "registration.exists", ex.getMessage());
+        }
+        model.addAttribute("showVehicleForm",true);
+        return refreshIndex(model, dto);
+    }
         // No try-catch here!
         // If registration exists, service throws IllegalArgumentException -> GlobalHandler catches it.
-        vehicleService.addVehicle(dto);
-        return "redirect:/customer/vehicles?added=true";
-    }
+//        vehicleService.addVehicle(dto);
+//        return "redirect:/customer/vehicles?added=true";
+//    }
 
     @GetMapping("/{id}/edit")
     public String edit(@PathVariable Long id, Model model) {
