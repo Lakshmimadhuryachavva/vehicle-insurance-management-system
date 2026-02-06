@@ -1,12 +1,13 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.CustomerDTO;
 import com.cts.vis.model.Customer;
 
 public interface CustomerService {
     Customer getCurrentCustomer();
-
-    // useful for other services if needed
     String getCurrentUserEmail();
+    void updateProfile(CustomerDTO.ProfileUpdateRequest dto);
 
-    void updateProfile(String name, String phone, String address);
+    // New helper to prepare the form
+    CustomerDTO.ProfileUpdateRequest getProfileUpdateDto();
 }

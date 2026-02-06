@@ -1,5 +1,6 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.CustomerDTO;
 import com.cts.vis.model.Customer;
 import com.cts.vis.model.User;
 import com.cts.vis.model.UserRole;
@@ -10,7 +11,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -21,29 +21,27 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public Customer registerCustomer(String name, String email, String phone, String address, String rawPassword) {
-        // 1. Check if the email already exists
-        boolean exists = userRepository.existsByEmail(email);
-        if (exists) {
-            throw new BadRequestException("Email already registered: " + email);
+    public Customer registerCustomer(CustomerDTO.RegisterRequest dto) {
+        // 1. Business Logic: Check uniqueness
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new BadRequestException("Email already registered: " + dto.getEmail());
         }
 
-        // 2. Create and save the User object using standard setters
+        // 2. Create User Entity (Security/Auth data)
         User user = new User();
-        user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setEmail(dto.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         user.setRole(UserRole.ROLE_CUSTOMER);
         user.setIsActive(true);
 
-        // Save user first to generate the ID for the relationship
         User savedUser = userRepository.save(user);
 
-        // 3. Create and save the Customer profile using standard setters
+        // 3. Create Customer Entity (Profile data)
         Customer customer = new Customer();
-        customer.setName(name);
-        customer.setEmail(email);
-        customer.setPhone(phone);
-        customer.setAddress(address);
+        customer.setName(dto.getName());
+        customer.setEmail(dto.getEmail());
+        customer.setPhone(dto.getPhone());
+        customer.setAddress(dto.getAddress());
         customer.setUser(savedUser);
 
         return customerRepository.save(customer);

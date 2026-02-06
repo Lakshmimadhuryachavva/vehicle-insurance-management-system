@@ -1,5 +1,6 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.CustomerDTO;
 import com.cts.vis.model.Customer;
 import com.cts.vis.model.User;
 import com.cts.vis.repository.CustomerRepository;
@@ -12,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class CustomerServiceImpl implements CustomerService {
@@ -23,19 +23,12 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        // Standard null check
-        if (auth == null) {
-            return null;
-        }
+        if (auth == null) return null;
 
         String name = auth.getName();
-
-        // Classic string validation (replacing isBlank())
-        if (name == null || name.trim().length() == 0 || "anonymousUser".equalsIgnoreCase(name)) {
+        if (name == null || name.trim().isEmpty() || "anonymousUser".equalsIgnoreCase(name)) {
             return null;
         }
-
         return name;
     }
 
@@ -46,30 +39,36 @@ public class CustomerServiceImpl implements CustomerService {
             throw new IllegalStateException("No authenticated customer found");
         }
 
-        // Manual Optional check for User
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (!userOpt.isPresent()) {
-            throw new NotFoundException("User not found: " + email);
-        }
-        User user = userOpt.get();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found: " + email));
 
-        // Manual Optional check for Customer
-        Optional<Customer> customerOpt = customerRepository.findByUser(user);
-        if (!customerOpt.isPresent()) {
-            throw new NotFoundException("Customer profile not found for: " + email);
-        }
+        return customerRepository.findByUser(user)
+                .orElseThrow(() -> new NotFoundException("Customer profile not found for: " + email));
+    }
 
-        return customerOpt.get();
+    @Override
+    public CustomerDTO.ProfileUpdateRequest getProfileUpdateDto() {
+        Customer c = getCurrentCustomer();
+        CustomerDTO.ProfileUpdateRequest dto = new CustomerDTO.ProfileUpdateRequest();
+        dto.setName(c.getName());
+        dto.setPhone(c.getPhone());
+        dto.setAddress(c.getAddress());
+        return dto;
     }
 
     @Override
     @Transactional
-    public void updateProfile(String name, String phone, String address) {
+    public void updateProfile(CustomerDTO.ProfileUpdateRequest dto) {
         Customer c = getCurrentCustomer();
 
-        c.setName(name);
-        c.setPhone(phone);
-        c.setAddress(address);
+        // Basic validation can happen here
+        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Name cannot be empty");
+        }
+
+        c.setName(dto.getName());
+        c.setPhone(dto.getPhone());
+        c.setAddress(dto.getAddress());
 
         customerRepository.save(c);
     }

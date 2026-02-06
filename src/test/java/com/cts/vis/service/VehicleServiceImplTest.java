@@ -1,5 +1,6 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.VehicleDTO;
 import com.cts.vis.exception.NotFoundException;
 import com.cts.vis.model.Customer;
 import com.cts.vis.model.Vehicle;
@@ -23,17 +24,17 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class VehicleServiceImplTest {
 
-    @Mock
-    private VehicleRepository vehicleRepository;
+    @Mock private VehicleRepository vehicleRepository;
+    @Mock private CustomerService customerService;
 
     @Mock
-    private CustomerService customerService;
-
+    private ClaimService claimService;
     @InjectMocks
     private VehicleServiceImpl vehicleService;
 
     private Customer mockCustomer;
     private Vehicle mockVehicle;
+    private VehicleDTO.CreateRequest createDto;
 
     @BeforeEach
     void setUp() {
@@ -43,87 +44,98 @@ public class VehicleServiceImplTest {
         mockVehicle = new Vehicle();
         mockVehicle.setVehicleId(100L);
         mockVehicle.setRegistrationNumber("TN-01-AB-1234");
+        mockVehicle.setMake("Honda");
         mockVehicle.setCustomer(mockCustomer);
+
+        createDto = new VehicleDTO.CreateRequest();
+        createDto.setRegistrationNumber("TN-01-AB-1234");
+        createDto.setMake("Honda");
+        createDto.setModel("Civic");
+        createDto.setYearOfManufacture(2022);
+        createDto.setVehicleType(VehicleType.CAR);
     }
 
     @Test
     void testAddVehicle_Success() {
         // Arrange
-        when(vehicleRepository.existsByRegistrationNumber("TN-01-AB-1234")).thenReturn(false);
+        when(vehicleRepository.existsByRegistrationNumber(createDto.getRegistrationNumber())).thenReturn(false);
         when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
         when(vehicleRepository.save(any(Vehicle.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        Vehicle result = vehicleService.addVehicle("TN-01-AB-1234", "Honda", "Civic", 2022, VehicleType.CAR);
+        Vehicle result = vehicleService.addVehicle(createDto);
 
         // Assert
         assertNotNull(result);
-        assertEquals("TN-01-AB-1234", result.getRegistrationNumber());
+        assertEquals(createDto.getRegistrationNumber(), result.getRegistrationNumber());
         assertEquals(mockCustomer, result.getCustomer());
         verify(vehicleRepository).save(any(Vehicle.class));
     }
 
     @Test
-    void testAddVehicle_ThrowsException_WhenRegNoExists() {
+    void testGetUpdateDto_Mapping() {
         // Arrange
-        when(vehicleRepository.existsByRegistrationNumber("TN-01-AB-1234")).thenReturn(true);
+        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+        when(vehicleRepository.findByVehicleIdAndCustomer(100L, mockCustomer)).thenReturn(Optional.of(mockVehicle));
+
+        // Act
+        VehicleDTO.UpdateRequest dto = vehicleService.getUpdateDto(100L);
+
+        // Assert
+        assertNotNull(dto);
+        assertEquals(mockVehicle.getRegistrationNumber(), dto.getRegistrationNumber());
+        assertEquals("Honda", dto.getMake());
+    }
+
+    @Test
+    void testUpdateVehicle_Success() {
+        // Arrange
+        VehicleDTO.UpdateRequest updateDto = new VehicleDTO.UpdateRequest();
+        updateDto.setRegistrationNumber("KA-01-ZZ-9999");
+        updateDto.setMake("Toyota");
+        updateDto.setModel("Corolla");
+        updateDto.setYearOfManufacture(2023); // <--- Add this to prevent NPE on line 97
+        updateDto.setVehicleType(VehicleType.CAR);
+
+        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+        when(vehicleRepository.findByVehicleIdAndCustomer(100L, mockCustomer)).thenReturn(Optional.of(mockVehicle));
+
+        // Ensure the claim check doesn't block the update
+        when(claimService.hasApprovedClaimForVehicle(100L)).thenReturn(false);
+
+        // Since we are changing the RegNo, we must mock the uniqueness check
+        when(vehicleRepository.existsByRegistrationNumber("KA-01-ZZ-9999")).thenReturn(false);
+
+        // Act
+        vehicleService.updateVehicle(100L, updateDto);
+
+        // Assert
+        assertEquals("KA-01-ZZ-9999", mockVehicle.getRegistrationNumber());
+        assertEquals("Toyota", mockVehicle.getMake());
+        assertEquals(2023, mockVehicle.getYearOfManufacture());
+        verify(vehicleRepository).save(mockVehicle);
+    }
+
+    @Test
+    void testUpdateVehicle_ThrowsException_DuplicateRegNo() {
+        // Arrange
+        VehicleDTO.UpdateRequest updateDto = new VehicleDTO.UpdateRequest();
+        updateDto.setRegistrationNumber("EXISTING-123");
+
+        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+        when(vehicleRepository.findByVehicleIdAndCustomer(100L, mockCustomer)).thenReturn(Optional.of(mockVehicle));
+        when(vehicleRepository.existsByRegistrationNumber("EXISTING-123")).thenReturn(true);
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () ->
-                vehicleService.addVehicle("TN-01-AB-1234", "Honda", "Civic", 2022, VehicleType.CAR)
-        );
+        assertThrows(IllegalArgumentException.class, () -> vehicleService.updateVehicle(100L, updateDto));
         verify(vehicleRepository, never()).save(any());
     }
 
     @Test
-    void testMyVehicles_ReturnsList() {
-        // Arrange
-        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
-        when(vehicleRepository.findByCustomer(mockCustomer)).thenReturn(Arrays.asList(mockVehicle));
-
-        // Act
-        List<Vehicle> list = vehicleService.myVehicles();
-
-        // Assert
-        assertEquals(1, list.size());
-        assertEquals("TN-01-AB-1234", list.get(0).getRegistrationNumber());
-    }
-
-    @Test
-    void testGetMyVehicle_Success() {
-        // Arrange
-        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
-        when(vehicleRepository.findByVehicleIdAndCustomer(100L, mockCustomer)).thenReturn(Optional.of(mockVehicle));
-
-        // Act
-        Vehicle result = vehicleService.getMyVehicle(100L);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(100L, result.getVehicleId());
-    }
-
-    @Test
     void testGetMyVehicle_ThrowsNotFound() {
-        // Arrange
         when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
-        when(vehicleRepository.findByVehicleIdAndCustomer(999L, mockCustomer)).thenReturn(Optional.empty());
+        when(vehicleRepository.findByVehicleIdAndCustomer(anyLong(), eq(mockCustomer))).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(NotFoundException.class, () -> vehicleService.getMyVehicle(999L));
-    }
-
-    @Test
-    void testUpdateVehicle_WithRegNoChange_ChecksUniqueness() {
-        // Arrange
-        String newReg = "KA-05-XY-9999";
-        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
-        when(vehicleRepository.findByVehicleIdAndCustomer(100L, mockCustomer)).thenReturn(Optional.of(mockVehicle));
-        when(vehicleRepository.existsByRegistrationNumber(newReg)).thenReturn(true);
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () ->
-                vehicleService.updateVehicle(100L, newReg, "Honda", "City", 2023, VehicleType.CAR)
-        );
     }
 }

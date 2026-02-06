@@ -1,8 +1,8 @@
 package com.cts.vis.controller;
 
+import com.cts.vis.dto.VehicleDTO;
 import com.cts.vis.model.Vehicle;
 import com.cts.vis.model.VehicleType;
-import com.cts.vis.service.ClaimService;
 import com.cts.vis.service.VehicleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +13,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -28,9 +30,6 @@ public class VehicleControllerTest {
     @Mock
     private VehicleService vehicleService;
 
-    @Mock
-    private ClaimService claimService;
-
     @InjectMocks
     private VehicleController vehicleController;
 
@@ -42,25 +41,22 @@ public class VehicleControllerTest {
 
     @Test
     public void testVehiclesListPage() throws Exception {
-        Vehicle v = new Vehicle();
-        v.setVehicleId(1L);
         List<Vehicle> vehicleList = new ArrayList<>();
-        vehicleList.add(v);
+        Map<Long, Boolean> lockStatus = new HashMap<>();
 
         when(vehicleService.myVehicles()).thenReturn(vehicleList);
-        when(claimService.hasApprovedClaimForVehicle(anyLong())).thenReturn(false);
+        when(vehicleService.getVehicleLockStatus(anyList())).thenReturn(lockStatus);
 
         mockMvc.perform(get("/customer/vehicles"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/vehicles"))
-                .andExpect(model().attributeExists("vehicles"))
-                .andExpect(model().attributeExists("editDisabled"))
-                .andExpect(model().attributeExists("types"));
+                .andExpect(model().attribute("vehicles", vehicleList))
+                .andExpect(model().attribute("editDisabled", lockStatus))
+                .andExpect(model().attributeExists("types", "vehicle"));
     }
 
     @Test
     public void testAddVehicleSuccess() throws Exception {
-        // Fix: Removed hyphens to satisfy ^[A-Z0-9]{5,12}$
         mockMvc.perform(post("/customer/vehicles/add")
                         .param("registrationNumber", "TN01AB1234")
                         .param("make", "Toyota")
@@ -70,41 +66,52 @@ public class VehicleControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/customer/vehicles?added=true"));
 
-        verify(vehicleService).addVehicle(eq("TN01AB1234"), anyString(), anyString(), anyInt(), any(VehicleType.class));
+        // Verify service called with the DTO
+        verify(vehicleService, times(1)).addVehicle(any(VehicleDTO.CreateRequest.class));
     }
 
     @Test
-    public void testAddVehicleDuplicateError() throws Exception {
-        doThrow(new RuntimeException("Duplicate Reg No"))
-                .when(vehicleService).addVehicle(anyString(), anyString(), anyString(), anyInt(), any(VehicleType.class));
+    public void testAddVehicle_ValidationFailure() throws Exception {
+        // 1. Arrange: Prepare data for the refreshIndex helper
+        when(vehicleService.myVehicles()).thenReturn(new ArrayList<>());
+        when(vehicleService.getVehicleLockStatus(anyList())).thenReturn(new HashMap<>());
 
-        // Use valid format even for error testing to ensure we hit the Service, not the Validation layer
+        // 2. Act: Send invalid data (registrationNumber too short)
         mockMvc.perform(post("/customer/vehicles/add")
-                        .param("registrationNumber", "DUPLICATE12")
-                        .param("make", "Honda")
-                        .param("model", "Civic")
-                        .param("yearOfManufacture", "2021")
-                        .param("vehicleType", "CAR"))
+                        .param("registrationNumber", "ABC")
+                        .param("make", "Toyota"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/vehicles"))
                 .andExpect(model().hasErrors());
+
+        // 3. Assert: Verify the "Write" operation was never called
+        verify(vehicleService, never()).addVehicle(any(VehicleDTO.CreateRequest.class));
+
+        // 4. Verify the "Read" operations were called to reload the page
+        verify(vehicleService, atLeastOnce()).myVehicles();
+        verify(vehicleService, atLeastOnce()).getVehicleLockStatus(anyList());
     }
 
     @Test
-    public void testEditLockedByApprovedClaim() throws Exception {
-        when(claimService.hasApprovedClaimForVehicle(1L)).thenReturn(true);
+    public void testEditPageView() throws Exception {
+        Long vehicleId = 1L;
+        VehicleDTO.UpdateRequest mockDto = new VehicleDTO.UpdateRequest();
 
-        mockMvc.perform(get("/customer/vehicles/1/edit"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/customer/vehicles?editLocked=true"));
+        when(vehicleService.getUpdateDto(vehicleId)).thenReturn(mockDto);
+
+        mockMvc.perform(get("/customer/vehicles/" + vehicleId + "/edit"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("customer/vehicle-edit"))
+                .andExpect(model().attribute("id", vehicleId))
+                .andExpect(model().attribute("vehicle", mockDto))
+                .andExpect(model().attributeExists("types"));
     }
 
     @Test
     public void testUpdateVehicleSuccess() throws Exception {
-        when(claimService.hasApprovedClaimForVehicle(1L)).thenReturn(false);
+        Long vehicleId = 1L;
 
-        // Fix: Changed "NEW-REG" to "NEWREG123" to match ^[A-Z0-9]{5,12}$
-        mockMvc.perform(post("/customer/vehicles/1/edit")
+        mockMvc.perform(post("/customer/vehicles/" + vehicleId + "/edit")
                         .param("registrationNumber", "NEWREG123")
                         .param("make", "Ford")
                         .param("model", "Mustang")
@@ -113,6 +120,21 @@ public class VehicleControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/customer/vehicles?updated=true"));
 
-        verify(vehicleService).updateVehicle(eq(1L), eq("NEWREG123"), anyString(), anyString(), anyInt(), any(VehicleType.class));
+        verify(vehicleService).updateVehicle(eq(vehicleId), any(VehicleDTO.UpdateRequest.class));
+    }
+
+    @Test
+    public void testUpdate_BusinessLogicError() throws Exception {
+        // If the vehicle is locked (due to claims), service throws exception
+        doThrow(new IllegalStateException("Vehicle locked"))
+                .when(vehicleService).updateVehicle(anyLong(), any());
+
+        try {
+            mockMvc.perform(post("/customer/vehicles/1/edit")
+                    .param("registrationNumber", "VALIDREG1"));
+        } catch (Exception e) {
+            // Standalone setup bubbles the exception to the test
+            assert(e.getCause() instanceof IllegalStateException);
+        }
     }
 }

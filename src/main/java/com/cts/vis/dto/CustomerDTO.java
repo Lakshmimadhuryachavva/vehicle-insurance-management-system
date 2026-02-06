@@ -18,7 +18,7 @@ public class CustomerDTO {
 
         @NotBlank(message = "Email is required")
         @Pattern(
-                regexp = "^[A-Za-z0-9+_.-]+@(.+)\\\\.(.+)$",
+                regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.com$",
                 message = "Email must be valid and end with .com"
         )
         private String email;

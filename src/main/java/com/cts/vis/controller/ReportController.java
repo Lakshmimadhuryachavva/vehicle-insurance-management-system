@@ -17,64 +17,59 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    // PAGE: /customer/reports
+    // --- VIEW PAGES ---
+
     @GetMapping
     public String reportsHome() {
         return "customer/reports";
     }
 
-    // PAGE: /customer/reports/policies
     @GetMapping("/policies")
     public String policyReportPage(Model model) {
-        var data = reportService.customerPolicyReport();
-        model.addAllAttributes(data);
+        // model.addAllAttributes expects a Map<String, Object> from the service
+        model.addAllAttributes(reportService.customerPolicyReport());
         return "customer/report-policy";
     }
 
-    // PAGE: /customer/reports/claims
     @GetMapping("/claims")
     public String claimReportPage(Model model) {
-        var data = reportService.customerClaimReport();
-        model.addAllAttributes(data);
+        model.addAllAttributes(reportService.customerClaimReport());
         return "customer/report-claim";
     }
 
-    // DOWNLOADS
+    // --- DOWNLOADS ---
+
     @GetMapping("/policies/pdf")
     public ResponseEntity<byte[]> policyPdf() {
-        byte[] pdf = reportService.customerPolicyPdf();
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=POLICY_REPORT.pdf")
-                .body(pdf);
+        return export(reportService.customerPolicyPdf(), "POLICY_REPORT.pdf", MediaType.APPLICATION_PDF);
     }
 
     @GetMapping("/policies/excel")
     public ResponseEntity<byte[]> policyExcel() {
-        byte[] excel = reportService.customerPolicyExcel();
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=POLICY_REPORT.xlsx")
-                .body(excel);
+        return export(reportService.customerPolicyExcel(), "POLICY_REPORT.xlsx",
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
     }
 
     @GetMapping("/claims/pdf")
     public ResponseEntity<byte[]> claimPdf() {
-        byte[] pdf = reportService.customerClaimPdf();
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CLAIM_REPORT.pdf")
-                .body(pdf);
+        return export(reportService.customerClaimPdf(), "CLAIM_REPORT.pdf", MediaType.APPLICATION_PDF);
     }
 
     @GetMapping("/claims/excel")
     public ResponseEntity<byte[]> claimExcel() {
-        byte[] excel = reportService.customerClaimExcel();
+        return export(reportService.customerClaimExcel(), "CLAIM_REPORT.xlsx",
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    /**
+     * Helper method to encapsulate ResponseEntity logic.
+     * Note: If 'data' is null or empty, the Service layer should throw a NotFoundException
+     * before reaching this point, which is then handled by the GlobalExceptionHandler.
+     */
+    private ResponseEntity<byte[]> export(byte[] data, String filename, MediaType mediaType) {
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CLAIM_REPORT.xlsx")
-                .body(excel);
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .body(data);
     }
 }

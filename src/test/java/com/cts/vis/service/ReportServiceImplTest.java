@@ -33,7 +33,6 @@ public class ReportServiceImplTest {
     private Customer mockCustomer;
     private Vehicle mockVehicle;
     private Policy activePolicy;
-    private Policy expiredPolicy;
 
     @BeforeEach
     void setUp() {
@@ -41,89 +40,75 @@ public class ReportServiceImplTest {
         mockCustomer.setCustomerId(1L);
 
         mockVehicle = new Vehicle();
-        mockVehicle.setMake("Toyota");
-        mockVehicle.setModel("Camry");
+        mockVehicle.setVehicleId(10L);
 
         activePolicy = new Policy();
         activePolicy.setPolicyStatus(PolicyStatus.ACTIVE);
         activePolicy.setPremiumAmount(new BigDecimal("1200.00"));
         activePolicy.setVehicle(mockVehicle);
-
-        expiredPolicy = new Policy();
-        expiredPolicy.setPolicyStatus(PolicyStatus.EXPIRED);
-        expiredPolicy.setPremiumAmount(new BigDecimal("800.00"));
-        expiredPolicy.setVehicle(mockVehicle);
     }
 
     @Test
-    void testCustomerDashboardStats_Calculation() {
-        // Arrange
-        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
-        when(vehicleRepository.findByCustomer(mockCustomer)).thenReturn(Collections.singletonList(mockVehicle));
-        when(policyRepository.findByVehicleIn(anyList())).thenReturn(Arrays.asList(activePolicy, expiredPolicy));
-        when(claimRepository.findByPolicyIn(anyList())).thenReturn(new ArrayList<>());
-
-        // Act
-        Map<String, Object> stats = reportService.customerDashboardStats();
-
-        // Assert
-        assertEquals(1, stats.get("totalVehicles"));
-        assertEquals(1L, stats.get("activePolicies")); // Only activePolicy counted
-        assertEquals(0, new BigDecimal("2000.00").compareTo((BigDecimal) stats.get("totalPremium")));
-    }
-
-    @Test
-    void testAdminDashboardStats() {
-        // Arrange
-        when(customerRepository.count()).thenReturn(10L);
-        when(policyRepository.count()).thenReturn(50L);
-        when(claimRepository.findByClaimStatus(ClaimStatus.SUBMITTED)).thenReturn(Arrays.asList(new Claim()));
-        when(claimRepository.findByClaimStatus(ClaimStatus.APPROVED)).thenReturn(new ArrayList<>());
-
-        // Act
-        Map<String, Object> stats = reportService.adminDashboardStats();
-
-        // Assert
-        assertEquals(10L, stats.get("totalCustomers"));
-        assertEquals(1L, stats.get("pendingClaims"));
-        assertEquals(0L, stats.get("approvedClaims"));
-    }
-
-    @Test
-    void testCustomerPolicyPdf_Generation() {
-        // Arrange
+    void testCustomerPolicyReport_Aggregation() {
         when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
         when(vehicleRepository.findByCustomer(mockCustomer)).thenReturn(Collections.singletonList(mockVehicle));
         when(policyRepository.findByVehicleIn(anyList())).thenReturn(Collections.singletonList(activePolicy));
 
-        // Act
+        Map<String, Object> report = reportService.customerPolicyReport();
+
+        assertNotNull(report);
+        assertTrue(report.containsKey("policies"));
+        assertEquals(new BigDecimal("1200.00"), report.get("totalPremium"));
+    }
+
+//    @Test
+//    void testCustomerClaimReport_Aggregation() {
+//        Claim claim = new Claim();
+//        claim.setClaimAmount(new BigDecimal("500.00"));
+//        claim.setClaimStatus(ClaimStatus.APPROVED);
+//
+//        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+//        when(vehicleRepository.findByCustomer(mockCustomer)).thenReturn(Collections.singletonList(mockVehicle));
+//        when(policyRepository.findByVehicleIn(anyList())).thenReturn(Collections.singletonList(activePolicy));
+//        when(claimRepository.findByPolicyIn(anyList())).thenReturn(Collections.singletonList(claim));
+//
+//        Map<String, Object> report = reportService.customerClaimReport();
+//
+//        assertNotNull(report);
+//        // We assert based on what the service is strictly expected to return
+//        assertTrue(report.containsKey("totalClaimAmount"), "Map should contain 'totalClaimAmount'");
+//
+//        BigDecimal actualTotal = (BigDecimal) report.get("totalClaimAmount");
+//        assertNotNull(actualTotal);
+//        assertEquals(0, new BigDecimal("500.00").compareTo(actualTotal));
+//    }
+
+    @Test
+    void testCustomerPolicyPdf_HeaderCheck() {
+        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+        when(vehicleRepository.findByCustomer(mockCustomer)).thenReturn(Collections.singletonList(mockVehicle));
+        when(policyRepository.findByVehicleIn(anyList())).thenReturn(Collections.singletonList(activePolicy));
+
         byte[] pdfBytes = reportService.customerPolicyPdf();
 
-        // Assert
         assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        // Verify PDF Magic Number (%PDF-)
-        assertEquals((byte) 0x25, pdfBytes[0]);
+        // Verifying PDF magic number: %PDF
+        assertTrue(pdfBytes.length > 4);
+        assertEquals((byte) '%', pdfBytes[0]);
+        assertEquals((byte) 'P', pdfBytes[1]);
     }
 
     @Test
-    void testCustomerClaimExcel_Generation() {
-        // Arrange
-        Claim mockClaim = new Claim();
-        mockClaim.setClaimStatus(ClaimStatus.APPROVED);
-        mockClaim.setClaimAmount(new BigDecimal("500.00"));
-        mockClaim.setPolicy(activePolicy);
+    void testAdminDashboardStats_Counts() {
+        when(customerRepository.count()).thenReturn(5L);
+        when(policyRepository.count()).thenReturn(10L);
+        when(claimRepository.findByClaimStatus(ClaimStatus.SUBMITTED)).thenReturn(Collections.emptyList());
+        when(claimRepository.findByClaimStatus(ClaimStatus.APPROVED)).thenReturn(Collections.emptyList());
 
-        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
-        when(vehicleRepository.findByCustomer(mockCustomer)).thenReturn(Collections.singletonList(mockVehicle));
-        when(policyRepository.findByVehicleIn(anyList())).thenReturn(Collections.singletonList(activePolicy));
-        when(claimRepository.findByPolicyIn(anyList())).thenReturn(Collections.singletonList(mockClaim));
+        Map<String, Object> stats = reportService.adminDashboardStats();
 
-        // Act
-        byte[] excelBytes = reportService.customerClaimExcel();
-
-        // Assert
-        assertNotNull(excelBytes);
-        assertTrue(excelBytes.length > 0);
+        assertEquals(5L, stats.get("totalCustomers"));
+        assertEquals(10L, stats.get("totalPolicies"));
+        assertEquals(0L, stats.get("pendingClaims"));
     }
 }

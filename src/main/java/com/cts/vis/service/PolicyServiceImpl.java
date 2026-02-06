@@ -1,5 +1,6 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.PolicyDTO;
 import com.cts.vis.model.Customer;
 import com.cts.vis.model.Policy;
 import com.cts.vis.model.PolicyStatus;
@@ -17,9 +18,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class PolicyServiceImpl implements PolicyService {
@@ -27,45 +29,54 @@ public class PolicyServiceImpl implements PolicyService {
     private final PolicyRepository policyRepository;
     private final VehicleRepository vehicleRepository;
     private final CustomerService customerService;
+    private final ClaimService claimService;
     private final PolicyNumberGenerator policyNumberGenerator;
 
     @Override
     @Transactional
-    public Policy createPolicy(Long vehicleId, BigDecimal coverageAmount, LocalDate startDate, LocalDate endDate) {
+    public Policy createPolicy(PolicyDTO.CreateRequest dto) {
         Customer customer = customerService.getCurrentCustomer();
 
-        // Manual Optional handling instead of .orElseThrow()
-        Optional<Vehicle> vOpt = vehicleRepository.findByVehicleIdAndCustomer(vehicleId, customer);
-        if (!vOpt.isPresent()) {
-            throw new IllegalArgumentException("Vehicle not found.");
-        }
-        Vehicle vehicle = vOpt.get();
-
-        if (startDate == null || endDate == null) {
+        // 1. Validate Date Logic (Business Logic moved from Controller)
+        if (dto.getStartDate() == null || dto.getEndDate() == null) {
             throw new IllegalArgumentException("Start date and End date are required.");
         }
-        if (!endDate.isAfter(startDate)) {
+        if (!dto.getEndDate().isAfter(dto.getStartDate())) {
             throw new IllegalArgumentException("End date must be after start date.");
         }
 
+        // 2. Find Vehicle
+        Vehicle vehicle = vehicleRepository.findByVehicleIdAndCustomer(dto.getVehicleId(), customer)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found for this customer."));
+
+        // 3. Generate Unique Policy Number
         String number;
         do {
             number = policyNumberGenerator.generate();
         } while (policyRepository.existsByPolicyNumber(number));
 
-        BigDecimal premium = calculatePremium(vehicle.getVehicleType(), vehicle.getYearOfManufacture(), coverageAmount);
+        // 4. Calculate Premium
+        BigDecimal premium = calculatePremium(vehicle.getVehicleType(), vehicle.getYearOfManufacture(), dto.getCoverageAmount());
 
-        // Using standard setters instead of Policy.builder()
         Policy p = new Policy();
         p.setVehicle(vehicle);
         p.setPolicyNumber(number);
-        p.setCoverageAmount(coverageAmount);
+        p.setCoverageAmount(dto.getCoverageAmount());
         p.setPremiumAmount(premium);
-        p.setStartDate(startDate);
-        p.setEndDate(endDate);
-        p.setPolicyStatus(getStatusByEndDate(endDate));
+        p.setStartDate(dto.getStartDate());
+        p.setEndDate(dto.getEndDate());
+        p.setPolicyStatus(getStatusByEndDate(dto.getEndDate()));
 
         return policyRepository.save(p);
+    }
+
+    @Override
+    public Map<Long, Boolean> getPolicyLockStatus(List<Policy> policies) {
+        Map<Long, Boolean> lockMap = new HashMap<>();
+        for (Policy p : policies) {
+            lockMap.put(p.getPolicyId(), claimService.hasApprovedClaimForPolicy(p.getPolicyId()));
+        }
+        return lockMap;
     }
 
     @Override
@@ -73,6 +84,7 @@ public class PolicyServiceImpl implements PolicyService {
     public Policy renewPolicy(Long policyId) {
         Policy p = getMyPolicy(policyId);
 
+        // Refresh status before checking renewal eligibility
         refreshStatus(p);
 
         if (p.getPolicyStatus() != PolicyStatus.EXPIRED) {
@@ -90,6 +102,11 @@ public class PolicyServiceImpl implements PolicyService {
     @Override
     @Transactional
     public Policy updatePolicy(Long policyId, BigDecimal coverageAmount) {
+        // Business Rule: Cannot edit if claims exist
+        if (claimService.hasApprovedClaimForPolicy(policyId)) {
+            throw new IllegalStateException("Policy is locked due to approved claims.");
+        }
+
         Policy p = getMyPolicy(policyId);
         Vehicle v = p.getVehicle();
 
@@ -108,18 +125,12 @@ public class PolicyServiceImpl implements PolicyService {
         List<Vehicle> vehicles = vehicleRepository.findByCustomer(customer);
         List<Policy> policies = policyRepository.findByVehicleIn(vehicles);
 
+        // Sync statuses with current date
         boolean changed = false;
-        // Simple for-each loop to refresh status
-        for (int i = 0; i < policies.size(); i++) {
-            Policy p = policies.get(i);
-            if (refreshStatus(p)) {
-                changed = true;
-            }
+        for (Policy p : policies) {
+            if (refreshStatus(p)) changed = true;
         }
-
-        if (changed) {
-            policyRepository.saveAll(policies);
-        }
+        if (changed) policyRepository.saveAll(policies);
 
         return policies;
     }
@@ -129,27 +140,17 @@ public class PolicyServiceImpl implements PolicyService {
         Customer customer = customerService.getCurrentCustomer();
         List<Vehicle> vehicles = vehicleRepository.findByCustomer(customer);
 
-        // Manual Optional handling
-        Optional<Policy> pOpt = policyRepository.findByPolicyIdAndVehicleIn(policyId, vehicles);
-        if (!pOpt.isPresent()) {
-            throw new NotFoundException("Policy not found.");
-        }
-        return pOpt.get();
+        return policyRepository.findByPolicyIdAndVehicleIn(policyId, vehicles)
+                .orElseThrow(() -> new NotFoundException("Policy not found."));
     }
 
+    // Helper Methods
     private PolicyStatus getStatusByEndDate(LocalDate endDate) {
-        if (LocalDate.now().isAfter(endDate)) {
-            return PolicyStatus.EXPIRED;
-        } else {
-            return PolicyStatus.ACTIVE;
-        }
+        return LocalDate.now().isAfter(endDate) ? PolicyStatus.EXPIRED : PolicyStatus.ACTIVE;
     }
 
     private boolean refreshStatus(Policy p) {
-        if (p.getEndDate() == null) {
-            return false;
-        }
-
+        if (p.getEndDate() == null) return false;
         PolicyStatus newStatus = getStatusByEndDate(p.getEndDate());
         if (p.getPolicyStatus() != newStatus) {
             p.setPolicyStatus(newStatus);
@@ -159,42 +160,19 @@ public class PolicyServiceImpl implements PolicyService {
     }
 
     private BigDecimal calculatePremium(VehicleType type, int yearOfManufacture, BigDecimal coverageAmount) {
-        // Replaced switch expression with classic switch-case
-        BigDecimal base;
-        switch (type) {
-            case CAR:
-                base = BigDecimal.valueOf(1000);
-                break;
-            case BIKE:
-                base = BigDecimal.valueOf(500);
-                break;
-            case TRUCK:
-                base = BigDecimal.valueOf(1500);
-                break;
-            default:
-                base = BigDecimal.valueOf(1000);
-        }
+        BigDecimal base = switch (type) {
+            case CAR -> BigDecimal.valueOf(1000);
+            case BIKE -> BigDecimal.valueOf(500);
+            case TRUCK -> BigDecimal.valueOf(1500);
+            default -> BigDecimal.valueOf(1000);
+        };
 
-        int currentYear = Year.now().getValue();
-        int age = currentYear - yearOfManufacture;
-        if (age < 0) {
-            age = 0;
-        }
-
-        BigDecimal ageFactor;
-        if (age <= 3) {
-            ageFactor = BigDecimal.valueOf(1.00);
-        } else if (age <= 7) {
-            ageFactor = BigDecimal.valueOf(1.10);
-        } else if (age <= 12) {
-            ageFactor = BigDecimal.valueOf(1.25);
-        } else {
-            ageFactor = BigDecimal.valueOf(1.40);
-        }
+        int age = Math.max(0, Year.now().getValue() - yearOfManufacture);
+        BigDecimal ageFactor = (age <= 3) ? BigDecimal.valueOf(1.0) :
+                (age <= 7) ? BigDecimal.valueOf(1.1) :
+                        (age <= 12) ? BigDecimal.valueOf(1.25) : BigDecimal.valueOf(1.4);
 
         BigDecimal coverageFactor = coverageAmount.multiply(BigDecimal.valueOf(0.008));
-
-        BigDecimal result = base.multiply(ageFactor).add(coverageFactor);
-        return result.setScale(2, RoundingMode.HALF_UP);
+        return base.multiply(ageFactor).add(coverageFactor).setScale(2, RoundingMode.HALF_UP);
     }
 }

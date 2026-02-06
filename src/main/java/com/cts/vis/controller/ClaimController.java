@@ -1,3 +1,4 @@
+
 package com.cts.vis.controller;
 
 import com.cts.vis.dto.ClaimDTO;
@@ -21,37 +22,27 @@ public class ClaimController {
 
     @GetMapping("/customer/claims")
     public String claims(Model model) {
-        model.addAttribute("policies", policyService.myPolicies());
-        model.addAttribute("claims", claimService.myClaims());
-        model.addAttribute("claim", new ClaimDTO.FileRequest());
-        return "customer/claims";
+        // Initializes the page with a fresh DTO
+        return refreshClaimsPage(model, new ClaimDTO.FileRequest());
     }
 
     @PostMapping("/customer/claims/file")
-    public String file(
-            @Valid @ModelAttribute("claim") ClaimDTO.FileRequest dto,
-            BindingResult result,
-            Model model) {
+    public String file(@Valid @ModelAttribute("claim") ClaimDTO.FileRequest dto,
+                       BindingResult result, Model model) {
 
         if (result.hasErrors()) {
-            model.addAttribute("policies", policyService.myPolicies());
-            model.addAttribute("claims", claimService.myClaims());
-            return "customer/claims";
+            return refreshClaimsPage(model, dto);
         }
 
-        try {
-            claimService.fileClaim(
-                    dto.getPolicyId(),
-                    dto.getClaimAmount(),
-                    dto.getClaimReason()
-            );
-        } catch (Exception ex) {
-            result.rejectValue("claimAmount", "error.claim", ex.getMessage());
-            model.addAttribute("policies", policyService.myPolicies());
-            model.addAttribute("claims", claimService.myClaims());
-            return "customer/claims";
-        }
+        claimService.fileClaim(dto);
 
         return "redirect:/customer/claims?submitted=true";
+    }
+
+    private String refreshClaimsPage(Model model, ClaimDTO.FileRequest form) {
+        model.addAttribute("policies", policyService.myPolicies());
+        model.addAttribute("claims", claimService.myClaims());
+        model.addAttribute("claim", form);
+        return "customer/claims";
     }
 }

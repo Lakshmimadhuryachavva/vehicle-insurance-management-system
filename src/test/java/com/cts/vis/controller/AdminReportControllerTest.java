@@ -1,6 +1,5 @@
 package com.cts.vis.controller;
 
-import com.cts.vis.model.ReportType;
 import com.cts.vis.service.AdminReportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,12 +11,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -35,20 +32,21 @@ public class AdminReportControllerTest {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
+        // Using standaloneSetup is appropriate for unit testing the controller logic
         this.mockMvc = MockMvcBuilders.standaloneSetup(adminReportController).build();
     }
 
     @Test
     public void testReportsPage() throws Exception {
-        // Prepare mock data
-        Map<String, Object> mockData = new HashMap<String, Object>();
+        // Prepare mock data returned by the service
+        Map<String, Object> mockData = new HashMap<>();
         mockData.put("count", 5L);
 
-        // Mock behavior: when generate is called with any params, return our map
-        when(adminReportService.generate(any(ReportType.class), any(LocalDate.class), any(LocalDate.class)))
+        // Mocking the generate call
+        when(adminReportService.generate(any(), any(), any()))
                 .thenReturn(mockData);
 
-        // Execute request to /admin/reports
+        // Verify that parameters are correctly bound to the ModelAttribute filter
         mockMvc.perform(get("/admin/reports")
                         .param("type", "POLICY")
                         .param("startDate", "2024-01-01")
@@ -63,7 +61,7 @@ public class AdminReportControllerTest {
     public void testDownloadPdf() throws Exception {
         byte[] mockContent = "Mock PDF Content".getBytes();
 
-        when(adminReportService.exportPdf(any(ReportType.class), any(LocalDate.class), any(LocalDate.class)))
+        when(adminReportService.exportPdf(any(), any(), any()))
                 .thenReturn(mockContent);
 
         mockMvc.perform(get("/admin/reports/download/pdf")
@@ -77,16 +75,31 @@ public class AdminReportControllerTest {
     @Test
     public void testDownloadExcel() throws Exception {
         byte[] mockContent = "Mock Excel Content".getBytes();
-        String excelType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        String excelMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-        when(adminReportService.exportExcel(any(ReportType.class), any(LocalDate.class), any(LocalDate.class)))
+        when(adminReportService.exportExcel(any(), any(), any()))
                 .thenReturn(mockContent);
 
         mockMvc.perform(get("/admin/reports/download/excel")
                         .param("type", "VEHICLE"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(excelType))
+                .andExpect(content().contentType(excelMimeType))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=VEHICLE_REPORT.xlsx"))
                 .andExpect(content().bytes(mockContent));
+    }
+
+    @Test
+    public void testDownloadPdf_DefaultFilename() throws Exception {
+        byte[] mockContent = "Mock PDF Content".getBytes();
+
+        when(adminReportService.exportPdf(any(), any(), any()))
+                .thenReturn(mockContent);
+
+        // Explicitly send an empty string for type to ensure the DTO
+        // property is treated as 'not provided' or 'null' logic kicks in
+        mockMvc.perform(get("/admin/reports/download/pdf")
+                        .param("type", "")) // Ensure type is empty
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=GENERAL_REPORT.pdf"));
     }
 }

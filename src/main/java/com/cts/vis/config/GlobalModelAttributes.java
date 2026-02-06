@@ -1,7 +1,7 @@
 package com.cts.vis.config;
-
 import com.cts.vis.model.Customer;
 import com.cts.vis.service.CustomerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 public class GlobalModelAttributes {
 
     private final CustomerService customerService;
-
+    @Autowired
     public GlobalModelAttributes(CustomerService customerService) {
         this.customerService = customerService;
     }

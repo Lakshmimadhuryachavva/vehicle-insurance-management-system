@@ -1,5 +1,6 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.CustomerDTO;
 import com.cts.vis.exception.BadRequestException;
 import com.cts.vis.model.Customer;
 import com.cts.vis.model.User;
@@ -33,77 +34,84 @@ public class AuthServiceImplTest {
     @InjectMocks
     private AuthServiceImpl authService;
 
-    private String name = "John Doe";
-    private String email = "john@example.com";
-    private String phone = "9876543210";
-    private String address = "123 Main St";
-    private String rawPassword = "StrongPassword@123";
-    private String encodedPassword = "hashed_password";
+    private CustomerDTO.RegisterRequest registerRequest;
+    private final String encodedPassword = "hashed_password";
+
+    @BeforeEach
+    void setUp() {
+        registerRequest = new CustomerDTO.RegisterRequest();
+        registerRequest.setName("John Doe");
+        registerRequest.setEmail("john@example.com");
+        registerRequest.setPhone("9876543210");
+        registerRequest.setAddress("123 Main St");
+        registerRequest.setPassword("StrongPassword@123");
+    }
 
     @Test
     void testRegisterCustomer_Success() {
         // Arrange
-        when(userRepository.existsByEmail(email)).thenReturn(false);
-        when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
+        when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn(encodedPassword);
 
-        // Use standard setId() matching your User model
         User mockSavedUser = new User();
         mockSavedUser.setId(1L);
-        mockSavedUser.setEmail(email);
-
+        mockSavedUser.setEmail(registerRequest.getEmail());
         when(userRepository.save(any(User.class))).thenReturn(mockSavedUser);
 
-        Customer mockSavedCustomer = new Customer();
-        mockSavedCustomer.setName(name);
-        mockSavedCustomer.setUser(mockSavedUser);
-
-        when(customerRepository.save(any(Customer.class))).thenReturn(mockSavedCustomer);
+        when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        Customer registeredCustomer = authService.registerCustomer(name, email, phone, address, rawPassword);
+        Customer registeredCustomer = authService.registerCustomer(registerRequest);
 
         // Assert
         assertNotNull(registeredCustomer);
-        assertEquals(name, registeredCustomer.getName());
-        assertEquals(1L, registeredCustomer.getUser().getId()); // Accessing via .getId()
+        assertEquals(registerRequest.getName(), registeredCustomer.getName());
+        assertEquals(registerRequest.getEmail(), registeredCustomer.getEmail());
+        assertEquals(registerRequest.getPhone(), registeredCustomer.getPhone());
+        assertEquals(1L, registeredCustomer.getUser().getId());
 
         // Verify
-        verify(userRepository).save(any(User.class));
-        verify(customerRepository).save(any(Customer.class));
+        verify(userRepository, times(1)).save(any(User.class));
+        verify(customerRepository, times(1)).save(any(Customer.class));
     }
 
     @Test
     void testRegisterCustomer_ThrowsBadRequest_WhenEmailExists() {
         // Arrange
-        when(userRepository.existsByEmail(email)).thenReturn(true);
+        when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(true);
 
         // Act & Assert
         BadRequestException exception = assertThrows(BadRequestException.class, () -> {
-            authService.registerCustomer(name, email, phone, address, rawPassword);
+            authService.registerCustomer(registerRequest);
         });
 
         assertTrue(exception.getMessage().contains("Email already registered"));
         verify(userRepository, never()).save(any(User.class));
+        verify(customerRepository, never()).save(any(Customer.class));
     }
 
     @Test
-    void testRegisterCustomer_VerifyUserFields() {
+    void testRegisterCustomer_VerifyEntityMapping() {
         // Arrange
-        when(userRepository.existsByEmail(email)).thenReturn(false);
-        when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
+        when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn(encodedPassword);
 
-        // Return the object that was passed into the save method
-        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(customerRepository.save(any(Customer.class))).thenAnswer(i -> i.getArguments()[0]);
+        // Capturing the objects passed to save to verify fields
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(customerRepository.save(any(Customer.class))).thenAnswer(i -> i.getArgument(0));
 
         // Act
-        Customer result = authService.registerCustomer(name, email, phone, address, rawPassword);
+        Customer result = authService.registerCustomer(registerRequest);
 
-        // Assert properties from your User model
+        // Assert User properties
         User savedUser = result.getUser();
-        assertEquals(email, savedUser.getEmail());
+        assertEquals(registerRequest.getEmail(), savedUser.getEmail());
         assertEquals(encodedPassword, savedUser.getPasswordHash());
         assertEquals(UserRole.ROLE_CUSTOMER, savedUser.getRole());
         assertTrue(savedUser.getIsActive());
+
+        // Assert Customer properties
+        assertEquals(registerRequest.getPhone(), result.getPhone());
+        assertEquals(registerRequest.getAddress(), result.getAddress());
     }
 }

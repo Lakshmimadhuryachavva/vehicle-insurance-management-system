@@ -24,6 +24,8 @@ public class CustomerController {
     public String dashboard(Model model) {
         Customer c = customerService.getCurrentCustomer();
         model.addAttribute("customer", c);
+
+        // reportService handles the statistics gathering
         model.addAllAttributes(reportService.customerDashboardStats());
         return "customer/dashboard";
     }
@@ -31,13 +33,18 @@ public class CustomerController {
     @GetMapping("/profile")
     public String profile(Model model) {
         model.addAttribute("customer", customerService.getCurrentCustomer());
-        model.addAttribute("profile", new CustomerDTO.ProfileUpdateRequest());
+
+        // Pre-fill the form with current data from the service layer
+        model.addAttribute("profile", customerService.getProfileUpdateDto());
         return "customer/profile";
     }
 
     @PostMapping("/profile")
     public String update(@ModelAttribute("profile") CustomerDTO.ProfileUpdateRequest dto) {
-        customerService.updateProfile(dto.getName(), dto.getPhone(), dto.getAddress());
+        // No try-catch here.
+        // Validation or persistence errors are handled by GlobalExceptionHandler.
+        customerService.updateProfile(dto);
+
         return "redirect:/customer/profile?saved=true";
     }
 }

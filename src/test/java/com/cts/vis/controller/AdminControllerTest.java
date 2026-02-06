@@ -15,9 +15,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.when;
@@ -45,38 +44,33 @@ public class AdminControllerTest {
 
     @BeforeEach
     public void setup() {
-        // Initialize mocks
         MockitoAnnotations.openMocks(this);
-        // Setup MockMvc in standalone mode
         this.mockMvc = MockMvcBuilders.standaloneSetup(adminController).build();
     }
 
     @Test
     public void testDashboard() throws Exception {
-        // Prepare mock data
-        Map<String, Object> stats = new HashMap<String, Object>();
+        // Arrange
+        Map<String, Object> stats = new HashMap<>();
         stats.put("totalCustomers", 10L);
-        stats.put("totalPolicies", 5L);
+        stats.put("totalRevenue", 50000.0);
 
-        // Mock behavior
         when(reportService.adminDashboardStats()).thenReturn(stats);
 
-        // Execute and Verify
+        // Act & Assert
         mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"))
                 .andExpect(model().attribute("totalCustomers", 10L))
-                .andExpect(model().attribute("totalPolicies", 5L));
+                .andExpect(model().attribute("totalRevenue", 50000.0));
     }
 
     @Test
-    public void testCustomers() throws Exception {
-        // Prepare list
-        List<Customer> customerList = new ArrayList<Customer>();
-        customerList.add(new Customer());
+    public void testCustomersPage() throws Exception {
+        // Arrange
+        when(customerRepository.findAll()).thenReturn(Collections.singletonList(new Customer()));
 
-        when(customerRepository.findAll()).thenReturn(customerList);
-
+        // Act & Assert
         mockMvc.perform(get("/admin/customers"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/customers"))
@@ -84,12 +78,11 @@ public class AdminControllerTest {
     }
 
     @Test
-    public void testVehicles() throws Exception {
-        List<Vehicle> vehicleList = new ArrayList<Vehicle>();
-        vehicleList.add(new Vehicle());
+    public void testVehiclesPage() throws Exception {
+        // Arrange
+        when(vehicleRepository.findAll()).thenReturn(Collections.singletonList(new Vehicle()));
 
-        when(vehicleRepository.findAll()).thenReturn(vehicleList);
-
+        // Act & Assert
         mockMvc.perform(get("/admin/vehicles"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/vehicles"))
@@ -97,12 +90,11 @@ public class AdminControllerTest {
     }
 
     @Test
-    public void testPolicies() throws Exception {
-        List<Policy> policyList = new ArrayList<Policy>();
-        policyList.add(new Policy());
+    public void testPoliciesPage() throws Exception {
+        // Arrange
+        when(policyRepository.findAll()).thenReturn(Collections.singletonList(new Policy()));
 
-        when(policyRepository.findAll()).thenReturn(policyList);
-
+        // Act & Assert
         mockMvc.perform(get("/admin/policies"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/policies"))

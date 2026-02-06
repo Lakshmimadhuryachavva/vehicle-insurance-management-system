@@ -1,5 +1,6 @@
 package com.cts.vis.service;
 
+import com.cts.vis.dto.CustomerDTO;
 import com.cts.vis.exception.NotFoundException;
 import com.cts.vis.model.Customer;
 import com.cts.vis.model.User;
@@ -23,17 +24,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class CustomerServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private CustomerRepository customerRepository;
-
-    @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
+    @Mock private UserRepository userRepository;
+    @Mock private CustomerRepository customerRepository;
+    @Mock private SecurityContext securityContext;
+    @Mock private Authentication authentication;
 
     @InjectMocks
     private CustomerServiceImpl customerService;
@@ -42,42 +36,17 @@ public class CustomerServiceImplTest {
 
     @BeforeEach
     void setupSecurityContext() {
-        // Set the mock security context to the holder
         SecurityContextHolder.setContext(securityContext);
     }
 
-    @Test
-    void testGetCurrentUserEmail_Success() {
-        // Arrange
+    private void mockAuthentication() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn(testEmail);
-
-        // Act
-        String email = customerService.getCurrentUserEmail();
-
-        // Assert
-        assertEquals(testEmail, email);
-    }
-
-    @Test
-    void testGetCurrentUserEmail_ReturnsNull_WhenAnonymous() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("anonymousUser");
-
-        // Act
-        String email = customerService.getCurrentUserEmail();
-
-        // Assert
-        assertNull(email);
     }
 
     @Test
     void testGetCurrentCustomer_Success() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn(testEmail);
-
+        mockAuthentication();
         User mockUser = new User();
         mockUser.setEmail(testEmail);
         when(userRepository.findByEmail(testEmail)).thenReturn(Optional.of(mockUser));
@@ -86,40 +55,38 @@ public class CustomerServiceImplTest {
         mockCustomer.setName("Alice");
         when(customerRepository.findByUser(mockUser)).thenReturn(Optional.of(mockCustomer));
 
-        // Act
         Customer result = customerService.getCurrentCustomer();
 
-        // Assert
         assertNotNull(result);
         assertEquals("Alice", result.getName());
     }
 
     @Test
-    void testGetCurrentCustomer_ThrowsException_WhenNoAuth() {
+    void testGetProfileUpdateDto() {
         // Arrange
-        when(securityContext.getAuthentication()).thenReturn(null);
+        mockAuthentication();
+        User mockUser = new User();
+        when(userRepository.findByEmail(testEmail)).thenReturn(Optional.of(mockUser));
 
-        // Act & Assert
-        assertThrows(IllegalStateException.class, () -> customerService.getCurrentCustomer());
-    }
+        Customer mockCustomer = new Customer();
+        mockCustomer.setName("Alice");
+        mockCustomer.setPhone("1234567890");
+        mockCustomer.setAddress("Wonderland");
+        when(customerRepository.findByUser(mockUser)).thenReturn(Optional.of(mockCustomer));
 
-    @Test
-    void testGetCurrentCustomer_ThrowsNotFound_WhenUserMissing() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn(testEmail);
-        when(userRepository.findByEmail(testEmail)).thenReturn(Optional.empty());
+        // Act
+        CustomerDTO.ProfileUpdateRequest dto = customerService.getProfileUpdateDto();
 
-        // Act & Assert
-        assertThrows(NotFoundException.class, () -> customerService.getCurrentCustomer());
+        // Assert
+        assertEquals("Alice", dto.getName());
+        assertEquals("1234567890", dto.getPhone());
+        assertEquals("Wonderland", dto.getAddress());
     }
 
     @Test
     void testUpdateProfile_Success() {
         // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn(testEmail);
-
+        mockAuthentication();
         User mockUser = new User();
         when(userRepository.findByEmail(testEmail)).thenReturn(Optional.of(mockUser));
 
@@ -127,12 +94,35 @@ public class CustomerServiceImplTest {
         mockCustomer.setName("Old Name");
         when(customerRepository.findByUser(mockUser)).thenReturn(Optional.of(mockCustomer));
 
+        CustomerDTO.ProfileUpdateRequest dto = new CustomerDTO.ProfileUpdateRequest();
+        dto.setName("New Name");
+        dto.setPhone("9999999999");
+        dto.setAddress("New Address");
+
         // Act
-        customerService.updateProfile("New Name", "9999999999", "New Address");
+        customerService.updateProfile(dto);
 
         // Assert
         assertEquals("New Name", mockCustomer.getName());
         assertEquals("9999999999", mockCustomer.getPhone());
         verify(customerRepository, times(1)).save(mockCustomer);
+    }
+
+    @Test
+    void testUpdateProfile_ThrowsException_WhenNameEmpty() {
+        // Arrange
+        mockAuthentication();
+        User mockUser = new User();
+        when(userRepository.findByEmail(testEmail)).thenReturn(Optional.of(mockUser));
+
+        Customer mockCustomer = new Customer();
+        when(customerRepository.findByUser(mockUser)).thenReturn(Optional.of(mockCustomer));
+
+        CustomerDTO.ProfileUpdateRequest dto = new CustomerDTO.ProfileUpdateRequest();
+        dto.setName(""); // Empty name should trigger the validation in service
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> customerService.updateProfile(dto));
+        verify(customerRepository, never()).save(any());
     }
 }

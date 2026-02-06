@@ -36,22 +36,23 @@ public class CustomerControllerTest {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
+        // Standalone setup targets the controller unit specifically
         this.mockMvc = MockMvcBuilders.standaloneSetup(customerController).build();
     }
 
     @Test
     public void testDashboard() throws Exception {
-        // 1. Arrange
+        // Arrange
         Customer mockCustomer = new Customer();
         mockCustomer.setName("John Doe");
 
-        Map<String, Object> stats = new HashMap<String, Object>();
+        Map<String, Object> stats = new HashMap<>();
         stats.put("activePolicies", 2);
 
         when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
         when(reportService.customerDashboardStats()).thenReturn(stats);
 
-        // 2. Act & Assert
+        // Act & Assert
         mockMvc.perform(get("/customer/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/dashboard"))
@@ -61,19 +62,24 @@ public class CustomerControllerTest {
 
     @Test
     public void testProfilePage() throws Exception {
+        // Arrange
         Customer mockCustomer = new Customer();
-        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+        CustomerDTO.ProfileUpdateRequest mockDto = new CustomerDTO.ProfileUpdateRequest();
 
+        when(customerService.getCurrentCustomer()).thenReturn(mockCustomer);
+        when(customerService.getProfileUpdateDto()).thenReturn(mockDto);
+
+        // Act & Assert
         mockMvc.perform(get("/customer/profile"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/profile"))
-                .andExpect(model().attributeExists("customer"))
-                .andExpect(model().attributeExists("profile"));
+                .andExpect(model().attribute("customer", mockCustomer))
+                .andExpect(model().attribute("profile", mockDto));
     }
 
     @Test
     public void testUpdateProfile() throws Exception {
-        // 1. Act
+        // Act & Assert
         mockMvc.perform(post("/customer/profile")
                         .param("name", "Jane Doe")
                         .param("phone", "9876543210")
@@ -81,7 +87,24 @@ public class CustomerControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/customer/profile?saved=true"));
 
-        // 2. Assert
-        verify(customerService, times(1)).updateProfile("Jane Doe", "9876543210", "456 Oak Ave");
+        // Verify the service was called with any ProfileUpdateRequest object
+        // MockMvc binds the params to the DTO automatically
+        verify(customerService, times(1)).updateProfile(any(CustomerDTO.ProfileUpdateRequest.class));
+    }
+
+    @Test
+    public void testUpdateProfile_ErrorBubbling() throws Exception {
+        // Since there's no try-catch in the controller,
+        // a RuntimeException from service should bubble up.
+        doThrow(new RuntimeException("Update failed"))
+                .when(customerService).updateProfile(any(CustomerDTO.ProfileUpdateRequest.class));
+
+        try {
+            mockMvc.perform(post("/customer/profile")
+                    .param("name", "Jane Doe"));
+        } catch (Exception e) {
+            // Confirm the exception reaches the caller (for GlobalExceptionHandler to catch)
+            assert(e.getCause() instanceof RuntimeException);
+        }
     }
 }

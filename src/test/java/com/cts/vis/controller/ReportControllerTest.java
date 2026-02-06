@@ -28,6 +28,8 @@ public class ReportControllerTest {
     @InjectMocks
     private ReportController reportController;
 
+    private final String EXCEL_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
@@ -43,28 +45,32 @@ public class ReportControllerTest {
 
     @Test
     public void testPolicyReportPage() throws Exception {
-        Map<String, Object> mockData = new HashMap<String, Object>();
+        Map<String, Object> mockData = new HashMap<>();
         mockData.put("totalPremium", 1500.00);
+        mockData.put("activeCount", 2);
 
         when(reportService.customerPolicyReport()).thenReturn(mockData);
 
         mockMvc.perform(get("/customer/reports/policies"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/report-policy"))
-                .andExpect(model().attribute("totalPremium", 1500.00));
+                .andExpect(model().attribute("totalPremium", 1500.00))
+                .andExpect(model().attribute("activeCount", 2));
     }
 
     @Test
     public void testClaimReportPage() throws Exception {
-        Map<String, Object> mockData = new HashMap<String, Object>();
+        Map<String, Object> mockData = new HashMap<>();
         mockData.put("totalClaims", 2);
+        mockData.put("pendingAmount", 500.00);
 
         when(reportService.customerClaimReport()).thenReturn(mockData);
 
         mockMvc.perform(get("/customer/reports/claims"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/report-claim"))
-                .andExpect(model().attribute("totalClaims", 2));
+                .andExpect(model().attribute("totalClaims", 2))
+                .andExpect(model().attribute("pendingAmount", 500.00));
     }
 
     @Test
@@ -80,15 +86,37 @@ public class ReportControllerTest {
     }
 
     @Test
-    public void testClaimExcelDownload() throws Exception {
-        byte[] mockExcel = "Fake Excel".getBytes();
-        String excelMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    public void testPolicyExcelDownload() throws Exception {
+        byte[] mockExcel = "Fake Policy Excel".getBytes();
+        when(reportService.customerPolicyExcel()).thenReturn(mockExcel);
 
+        mockMvc.perform(get("/customer/reports/policies/excel"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.parseMediaType(EXCEL_TYPE)))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=POLICY_REPORT.xlsx"))
+                .andExpect(content().bytes(mockExcel));
+    }
+
+    @Test
+    public void testClaimPdfDownload() throws Exception {
+        byte[] mockPdf = "Fake Claim PDF".getBytes();
+        when(reportService.customerClaimPdf()).thenReturn(mockPdf);
+
+        mockMvc.perform(get("/customer/reports/claims/pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CLAIM_REPORT.pdf"))
+                .andExpect(content().bytes(mockPdf));
+    }
+
+    @Test
+    public void testClaimExcelDownload() throws Exception {
+        byte[] mockExcel = "Fake Claim Excel".getBytes();
         when(reportService.customerClaimExcel()).thenReturn(mockExcel);
 
         mockMvc.perform(get("/customer/reports/claims/excel"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.parseMediaType(excelMime)))
+                .andExpect(content().contentType(MediaType.parseMediaType(EXCEL_TYPE)))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CLAIM_REPORT.xlsx"))
                 .andExpect(content().bytes(mockExcel));
     }

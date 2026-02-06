@@ -47,6 +47,23 @@ public class AdminReportServiceImplTest {
     }
 
     @Test
+    void testGenerate_WithNullInputs_UsesDefaults() {
+        // Arrange
+        when(customerRepository.findByCreatedDateBetween(any(), any()))
+                .thenReturn(Arrays.asList(new Customer()));
+
+        // Act
+        // Passing nulls to test the "Normalization Logic" in the service
+        Map<String, Object> result = adminReportService.generate(null, null, null);
+
+        // Assert
+        assertEquals(ReportType.CUSTOMER, result.get("type"));
+        assertNotNull(result.get("start"));
+        assertNotNull(result.get("end"));
+        assertEquals(1L, result.get("count"));
+    }
+
+    @Test
     void testGenerateCustomerReport() {
         Customer c = new Customer();
         c.setCustomerId(1L);
@@ -60,13 +77,13 @@ public class AdminReportServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testGeneratePolicyReport_CalculatesActiveAndPremium() {
         Policy p1 = new Policy();
         p1.setPolicyStatus(PolicyStatus.ACTIVE);
         p1.setPremiumAmount(new BigDecimal("1000.00"));
 
         Policy p2 = new Policy();
-        // Fixed: Using EXPIRED as it is defined in your PolicyStatus enum
         p2.setPolicyStatus(PolicyStatus.EXPIRED);
         p2.setPremiumAmount(new BigDecimal("500.00"));
 
@@ -75,8 +92,10 @@ public class AdminReportServiceImplTest {
 
         Map<String, Object> result = adminReportService.generate(ReportType.POLICY, start, end);
 
-        assertEquals(2L, result.get("count"));
-        assertEquals(1L, result.get("activeCount")); // Only p1 is ACTIVE
+        List<Policy> rows = (List<Policy>) result.get("rows");
+        assertEquals(2, rows.size());
+        assertEquals(1L, result.get("activeCount"));
+        // Using compareTo for BigDecimal to ignore scale differences (e.g., 1500.0 vs 1500.00)
         assertEquals(0, new BigDecimal("1500.00").compareTo((BigDecimal) result.get("totalPremium")));
     }
 
@@ -87,7 +106,6 @@ public class AdminReportServiceImplTest {
         c1.setClaimAmount(new BigDecimal("5000.00"));
 
         Claim c2 = new Claim();
-        // Fixed: Using REJECTED as it is defined in your ClaimStatus enum
         c2.setClaimStatus(ClaimStatus.REJECTED);
         c2.setClaimAmount(new BigDecimal("2000.00"));
 
@@ -97,12 +115,12 @@ public class AdminReportServiceImplTest {
         Map<String, Object> result = adminReportService.generate(ReportType.CLAIM, start, end);
 
         assertEquals(2L, result.get("count"));
-        assertEquals(1L, result.get("approvedCount")); // Only c1 is APPROVED
+        assertEquals(1L, result.get("approvedCount"));
         assertEquals(0, new BigDecimal("7000.00").compareTo((BigDecimal) result.get("totalClaimed")));
     }
 
     @Test
-    void testExportPdf() {
+    void testExportPdf_CustomerReport() {
         // Arrange
         when(customerRepository.findByCreatedDateBetween(any(), any()))
                 .thenReturn(Arrays.asList(new Customer()));
@@ -113,12 +131,12 @@ public class AdminReportServiceImplTest {
         // Assert
         assertNotNull(pdf);
         assertTrue(pdf.length > 0);
-        // PDF header check (%)
-        assertEquals((byte) 0x25, pdf[0]);
+        // Verify PDF Magic Number (%PDF-)
+        assertEquals((byte) '%', pdf[0]);
     }
 
     @Test
-    void testExportExcel() {
+    void testExportExcel_VehicleReport() {
         // Arrange
         when(vehicleRepository.findByCreatedDateBetween(any(), any()))
                 .thenReturn(Arrays.asList(new Vehicle()));

@@ -1,5 +1,4 @@
 package com.cts.vis.controller;
-
 import com.cts.vis.dto.ReportDTO;
 import com.cts.vis.model.ReportType;
 import com.cts.vis.service.AdminReportService;
@@ -11,72 +10,42 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
 import java.time.LocalDate;
 import java.util.Map;
-
 @Controller
-@RequestMapping("/admin/reports")  // ✅ IMPORTANT: matches your HTML links
+@RequestMapping("/admin/reports")
 @RequiredArgsConstructor
 public class AdminReportController {
-
     private final AdminReportService adminReportService;
-
-    // ✅ PAGE: /admin/reports
     @GetMapping
-    public String reportsPage(
-            @RequestParam(required = false) ReportType type,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            Model model
-    ) {
-        ReportType t = (type == null) ? ReportType.CUSTOMER : type;
-        LocalDate start = (startDate == null) ? LocalDate.now().minusMonths(6) : startDate;
-        LocalDate end = (endDate == null) ? LocalDate.now() : endDate;
-
-        Map<String, Object> data = adminReportService.generate(t, start, end);
+    public String reportsPage(@ModelAttribute ReportDTO.AdminFilterRequest filter, Model model) {
+        // Simply pass whatever the UI sent (or didn't send) to the service
+        Map<String, Object> data = adminReportService.generate(filter.getType(), filter.getStartDate(), filter.getEndDate());
 
         model.addAttribute("types", ReportType.values());
-        model.addAttribute("type", t);
-        model.addAttribute("start", start);
-        model.addAttribute("end", end);
-
-        // rows + summary keys (count, activeCount, totalPremium, approvedCount, totalClaimed)
         model.addAllAttributes(data);
-
         return "admin/reports";
     }
 
-    // ✅ DOWNLOAD PDF: /admin/reports/download/pdf
     @GetMapping("/download/pdf")
     public ResponseEntity<byte[]> downloadPdf(@ModelAttribute ReportDTO.AdminFilterRequest filter) {
-
-        ReportType type = (filter.getType() == null) ? ReportType.CUSTOMER : filter.getType();
-        LocalDate start = (filter.getStartDate() == null) ? LocalDate.now().minusMonths(6) : filter.getStartDate();
-        LocalDate end = (filter.getEndDate() == null) ? LocalDate.now() : filter.getEndDate();
-
-        byte[] pdf = adminReportService.exportPdf(type, start, end);
+        byte[] pdf = adminReportService.exportPdf(filter.getType(), filter.getStartDate(), filter.getEndDate());
+        String filename = (filter.getType() != null ? filter.getType() : "GENERAL") + "_REPORT.pdf";
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + type + "_REPORT.pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
                 .body(pdf);
     }
 
-    // ✅ DOWNLOAD EXCEL: /admin/reports/download/excel
     @GetMapping("/download/excel")
     public ResponseEntity<byte[]> downloadExcel(@ModelAttribute ReportDTO.AdminFilterRequest filter) {
-
-        ReportType type = (filter.getType() == null) ? ReportType.CUSTOMER : filter.getType();
-        LocalDate start = (filter.getStartDate() == null) ? LocalDate.now().minusMonths(6) : filter.getStartDate();
-        LocalDate end = (filter.getEndDate() == null) ? LocalDate.now() : filter.getEndDate();
-
-        byte[] excel = adminReportService.exportExcel(type, start, end);
+        byte[] excel = adminReportService.exportExcel(filter.getType(), filter.getStartDate(), filter.getEndDate());
+        String filename = (filter.getType() != null ? filter.getType() : "GENERAL") + "_REPORT.xlsx";
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + type + "_REPORT.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
                 .body(excel);
     }
 }

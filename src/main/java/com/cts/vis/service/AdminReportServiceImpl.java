@@ -1,5 +1,4 @@
 package com.cts.vis.service;
-
 import com.cts.vis.model.*;
 import com.cts.vis.repository.ClaimRepository;
 import com.cts.vis.repository.CustomerRepository;
@@ -34,28 +33,31 @@ public class AdminReportServiceImpl implements AdminReportService {
     @Override
     @Transactional
     public Map<String, Object> generate(ReportType type, LocalDate start, LocalDate end) {
-        Map<String, Object> model = new HashMap<String, Object>();
-        model.put("type", type);
-        model.put("start", start);
-        model.put("end", end);
+        // Normalization Logic: Provide defaults if inputs are null
+        ReportType actualType = (type == null) ? ReportType.CUSTOMER : type;
+        LocalDate actualStart = (start == null) ? LocalDate.now().minusMonths(6) : start;
+        LocalDate actualEnd = (end == null) ? LocalDate.now() : end;
 
-        // Classic Switch-Case (No Switch Expressions)
-        switch (type) {
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.put("type", actualType);
+        model.put("start", actualStart);
+        model.put("end", actualEnd);
+
+        switch (actualType) {
             case CUSTOMER:
-                List<Customer> customers = customerRepository.findByCreatedDateBetween(start, end);
+                List<Customer> customers = customerRepository.findByCreatedDateBetween(actualStart, actualEnd);
                 model.put("rows", customers);
                 model.put("count", (long) customers.size());
                 break;
             case VEHICLE:
-                List<Vehicle> vehicles = vehicleRepository.findByCreatedDateBetween(start, end);
+                List<Vehicle> vehicles = vehicleRepository.findByCreatedDateBetween(actualStart, actualEnd);
                 model.put("rows", vehicles);
                 model.put("count", (long) vehicles.size());
                 break;
             case POLICY:
-                List<Policy> policies = policyRepository.findByStartDateBetween(start, end);
+                List<Policy> policies = policyRepository.findByStartDateBetween(actualStart, actualEnd);
                 long active = 0;
                 BigDecimal totalPremium = BigDecimal.ZERO;
-                // Traditional Loop instead of Streams
                 for (Policy p : policies) {
                     if (p.getPolicyStatus() == PolicyStatus.ACTIVE) {
                         active++;
@@ -70,10 +72,9 @@ public class AdminReportServiceImpl implements AdminReportService {
                 model.put("totalPremium", totalPremium);
                 break;
             case CLAIM:
-                List<Claim> claims = claimRepository.findByClaimDateBetween(start, end);
+                List<Claim> claims = claimRepository.findByClaimDateBetween(actualStart, actualEnd);
                 long approved = 0;
                 BigDecimal totalClaimed = BigDecimal.ZERO;
-                // Traditional Loop instead of Streams
                 for (Claim c : claims) {
                     if (c.getClaimStatus() == ClaimStatus.APPROVED) {
                         approved++;
@@ -94,18 +95,24 @@ public class AdminReportServiceImpl implements AdminReportService {
     @Override
     public byte[] exportPdf(ReportType type, LocalDate start, LocalDate end) {
         Map<String, Object> model = generate(type, start, end);
-        String title = "Vehicle Insurance - " + type + " Report (" + start + " to " + end + ")";
-        return buildPdf(title, headersFor(type), rowsFor(type, model.get( "rows" )), summaryFor(type, model));
+        LocalDate s = (LocalDate) model.get("start");
+        LocalDate e = (LocalDate) model.get("end");
+        ReportType t = (ReportType) model.get("type");
+
+        String title = "Vehicle Insurance - " + t + " Report (" + s + " to " + e + ")";
+        return buildPdf(title, headersFor(t), rowsFor(t, model.get("rows")), summaryFor(t, model));
     }
 
     @Override
     public byte[] exportExcel(ReportType type, LocalDate start, LocalDate end) {
         Map<String, Object> model = generate(type, start, end);
-        return buildExcel(type + " Report", headersFor(type), rowsFor(type, model.get( "rows" )), summaryFor(type, model));
+        ReportType t = (ReportType) model.get("type");
+        return buildExcel(t + " Report", headersFor(t), rowsFor(t, model.get("rows")), summaryFor(t, model));
     }
 
+    // --- Helper Methods ---
+
     private List<String> headersFor(ReportType type) {
-        // Arrays.asList instead of List.of
         switch (type) {
             case CUSTOMER: return Arrays.asList("ID", "Name", "Email", "Phone", "Created");
             case VEHICLE:  return Arrays.asList("ID", "Reg No", "Owner", "Make", "Model", "Type");
@@ -141,7 +148,8 @@ public class AdminReportServiceImpl implements AdminReportService {
             List<Claim> claims = (List<Claim>) rowsObj;
             for (Claim c : claims) {
                 String pol = c.getPolicy() != null ? c.getPolicy().getPolicyNumber() : "N/A";
-                out.add(Arrays.asList(s(c.getClaimId()), pol, s(c.getClaimAmount()), safe(c.getClaimReason()), s(c.getClaimStatus())));
+                String cust = (c.getPolicy() != null && c.getPolicy().getVehicle() != null && c.getPolicy().getVehicle().getCustomer() != null) ? c.getPolicy().getVehicle().getCustomer().getName() : "N/A";
+                out.add(Arrays.asList(s(c.getClaimId()), pol, cust, s(c.getClaimAmount()), safe(c.getClaimReason()), s(c.getClaimStatus())));
             }
         }
         return out;
@@ -174,17 +182,16 @@ public class AdminReportServiceImpl implements AdminReportService {
             table.setWidthPercentage(100);
 
             com.lowagie.text.Font headFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.WHITE);
-            for (int i = 0; i < headers.size(); i++) {
-                PdfPCell cell = new PdfPCell(new Phrase(headers.get(i), headFont));
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(header, headFont));
                 cell.setBackgroundColor(new Color(30, 41, 59));
                 cell.setPadding(5);
                 table.addCell(cell);
             }
 
-            for (int i = 0; i < rows.size(); i++) {
-                List<String> rowData = rows.get(i);
-                for (int j = 0; j < rowData.size(); j++) {
-                    table.addCell(new Phrase(rowData.get(j), FontFactory.getFont(FontFactory.HELVETICA, 10)));
+            for (List<String> rowData : rows) {
+                for (String cellData : rowData) {
+                    table.addCell(new Phrase(cellData, FontFactory.getFont(FontFactory.HELVETICA, 10)));
                 }
             }
 
@@ -192,7 +199,6 @@ public class AdminReportServiceImpl implements AdminReportService {
             doc.add(Chunk.NEWLINE);
 
             doc.add(new Paragraph("Summary Report", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
-            // Manual iteration for map entries (Classic Java)
             Iterator<Map.Entry<String, String>> it = summary.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<String, String> entry = it.next();
@@ -205,9 +211,7 @@ public class AdminReportServiceImpl implements AdminReportService {
     }
 
     private byte[] buildExcel(String sheetName, List<String> headers, List<List<String>> rows, Map<String, String> summary) {
-        try {
-            Workbook wb = new XSSFWorkbook();
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = wb.createSheet(sheetName);
 
             Row headerRow = sheet.createRow(0);
@@ -235,7 +239,6 @@ public class AdminReportServiceImpl implements AdminReportService {
             }
 
             wb.write(out);
-            wb.close();
             return out.toByteArray();
         } catch (Exception e) { throw new RuntimeException("Excel Error", e); }
     }

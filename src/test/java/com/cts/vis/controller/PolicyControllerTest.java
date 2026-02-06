@@ -3,7 +3,6 @@ package com.cts.vis.controller;
 import com.cts.vis.dto.PolicyDTO;
 import com.cts.vis.model.Policy;
 import com.cts.vis.model.Vehicle;
-import com.cts.vis.service.ClaimService;
 import com.cts.vis.service.PolicyService;
 import com.cts.vis.service.VehicleService;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,13 +13,14 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,9 +36,6 @@ public class PolicyControllerTest {
     @Mock
     private VehicleService vehicleService;
 
-    @Mock
-    private ClaimService claimService;
-
     @InjectMocks
     private PolicyController policyController;
 
@@ -50,73 +47,88 @@ public class PolicyControllerTest {
 
     @Test
     public void testPoliciesPage() throws Exception {
-        // Prepare mock lists
-        List<Policy> mockPolicies = new ArrayList<Policy>();
-        List<Vehicle> mockVehicles = new ArrayList<Vehicle>();
+        List<Policy> mockPolicies = new ArrayList<>();
+        List<Vehicle> mockVehicles = new ArrayList<>();
+        Map<Long, Boolean> lockStatus = new HashMap<>();
 
         when(policyService.myPolicies()).thenReturn(mockPolicies);
         when(vehicleService.myVehicles()).thenReturn(mockVehicles);
+        when(policyService.getPolicyLockStatus(mockPolicies)).thenReturn(lockStatus);
 
         mockMvc.perform(get("/customer/policies"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/policies"))
-                .andExpect(model().attributeExists("policies", "vehicles", "editDisabled", "today"));
+                .andExpect(model().attribute("policies", mockPolicies))
+                .andExpect(model().attribute("vehicles", mockVehicles))
+                .andExpect(model().attributeExists("editDisabled", "today", "policy"));
     }
 
     @Test
     public void testCreatePolicySuccess() throws Exception {
+        // MockMvc binds parameters to PolicyDTO.CreateRequest
         mockMvc.perform(post("/customer/policies/create")
                         .param("vehicleId", "1")
                         .param("coverageAmount", "10000")
-                        .param("startDate", LocalDate.now().toString())
-                        .param("endDate", LocalDate.now().plusYears(1).toString()))
+                        .param("startDate", "2026-02-06")
+                        .param("endDate", "2027-02-06"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/customer/policies?created=true"));
 
-        verify(policyService, times(1)).createPolicy(eq(1L), any(BigDecimal.class), any(LocalDate.class), any(LocalDate.class));
+        verify(policyService, times(1)).createPolicy(any(PolicyDTO.CreateRequest.class));
     }
 
     @Test
-    public void testCreatePolicyDateError() throws Exception {
-        // Start date after end date
+    public void testCreatePolicy_ValidationFailure() throws Exception {
+        // 1. Arrange: Mock the calls inside refreshDashboard so they don't return null
+        when(policyService.myPolicies()).thenReturn(new ArrayList<>());
+        when(policyService.getPolicyLockStatus(anyList())).thenReturn(new HashMap<>());
+        when(vehicleService.myVehicles()).thenReturn(new ArrayList<>());
+
+        // 2. Act: Send invalid data (e.g., missing coverageAmount)
         mockMvc.perform(post("/customer/policies/create")
                         .param("vehicleId", "1")
-                        .param("coverageAmount", "10000")
-                        .param("startDate", "2026-12-31")
-                        .param("endDate", "2026-01-01"))
+                        .param("coverageAmount", ""))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customer/policies"))
-                .andExpect(model().hasErrors()); // result.rejectValue for date logic
+                .andExpect(model().attributeExists("policies", "vehicles"));
+
+        // 3. Assert: Verify the CREATE method was NEVER called
+        verify(policyService, never()).createPolicy(any(PolicyDTO.CreateRequest.class));
+
+        // 4. Verification: You can optionally verify the "Read" methods WERE called
+        verify(policyService, atLeastOnce()).myPolicies();
+        verify(policyService, atLeastOnce()).getPolicyLockStatus(anyList());
     }
 
     @Test
     public void testRenewPolicy() throws Exception {
-        mockMvc.perform(post("/customer/policies/1/renew"))
+        Long policyId = 1L;
+
+        mockMvc.perform(post("/customer/policies/" + policyId + "/renew"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/customer/policies?renewed=true"));
 
-        verify(policyService).renewPolicy(1L);
+        verify(policyService).renewPolicy(policyId);
     }
 
     @Test
-    public void testEditLockedByClaim() throws Exception {
-        // Simulate an approved claim exists
-        when(claimService.hasApprovedClaimForPolicy(1L)).thenReturn(true);
+    public void testEditPageView() throws Exception {
+        Policy mockPolicy = new Policy();
+        when(policyService.getMyPolicy(1L)).thenReturn(mockPolicy);
 
         mockMvc.perform(get("/customer/policies/1/edit"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/customer/policies?editLocked=true"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("customer/policy-edit"))
+                .andExpect(model().attribute("policy", mockPolicy));
     }
 
     @Test
     public void testUpdatePolicySuccess() throws Exception {
-        when(claimService.hasApprovedClaimForPolicy(1L)).thenReturn(false);
-
         mockMvc.perform(post("/customer/policies/1/edit")
                         .param("coverageAmount", "15000"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/customer/policies?updated=true"));
 
-        verify(policyService).updatePolicy(eq(1L), any(BigDecimal.class));
+        verify(policyService).updatePolicy(eq(1L), any());
     }
 }
