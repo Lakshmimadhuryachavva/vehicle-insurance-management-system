@@ -1,26 +1,4 @@
-**Vehicle Insurance Policy & Claim Management System**
- 
-A Spring Boot MVC application for managing vehicle insurance policies and claims.
-The system supports Customer and Admin roles with secure authentication, policy lifecycle management, and claim processing.
-*Project Overview*
-This application serves as a comprehensive platform for insurance lifecycle management.
-
-* **Customers** can register vehicles, purchase policies, and file claims.
-* **Admins** act as overseers, managing system-wide data and approving/rejecting claims.
-The application follows a layered architecture using:
--Spring MVC
--Spring Data JPA
--Spring Security
--Thymeleaf templates
- 
-Here is the complete, professionally formatted README.md file based on your project details. This layout uses standard Markdown syntax to ensure it renders perfectly on GitHub.
-
-Markdown
 # 🚗 Vehicle Insurance Policy & Claim Management System
-
-![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=java)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.x-brightgreen?style=for-the-badge&logo=springboot)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?style=for-the-badge&logo=mysql)
 
 A comprehensive Spring Boot MVC application for managing vehicle insurance policies and claims. The system provides specialized portals for both **Customers** and **Administrators** with secure, role-based authentication.
 
