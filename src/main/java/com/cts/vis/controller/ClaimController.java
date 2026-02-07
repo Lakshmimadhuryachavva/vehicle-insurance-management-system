@@ -33,9 +33,14 @@ public class ClaimController {
         if (result.hasErrors()) {
             return refreshClaimsPage(model, dto);
         }
+        try {
 
-        claimService.fileClaim(dto);
-
+            claimService.fileClaim(dto);
+        }
+        catch(IllegalArgumentException | IllegalStateException ex) {
+            model.addAttribute("ClaimErrorMessage",ex.getMessage());
+            return refreshClaimsPage(model,dto);
+        }
         return "redirect:/customer/claims?submitted=true";
     }
 

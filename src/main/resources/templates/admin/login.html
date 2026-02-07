@@ -77,6 +77,17 @@
         </div>
     </div>
 
+    <div th:if="${param.error}"
+         style="margin-bottom:12px; background:#f8d7da; color:#842029;
+            padding:10px; border-radius:6px;">
+        Invalid admin email or password.
+    </div>
+
+    <div th:if="${param.onlyAdmin}"
+         style="margin-bottom:12px; background:#f8d7da; color:#842029;
+            padding:10px; border-radius:6px;">
+        Only admins are allowed to log in here.
+    </div>
     <form th:action="@{/admin/login}" method="post">
         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 

@@ -21,6 +21,11 @@
         <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 20px;">
             File New Claim
         </div>
+        <div th:if="${claimErrorMessage}"
+             class="alert alert-error"
+             style="margin-bottom:12px;">
+            <p th:text="${claimErrorMessage}"></p>
+        </div>
 
         <form th:action="@{/customer/claims/file}" method="post" th:object="${claim}">
             <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

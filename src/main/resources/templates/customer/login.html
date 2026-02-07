@@ -75,6 +75,10 @@
     <div th:if="${param.logout}" class="alert alert-success">
         Logged out successfully.
     </div>
+    <div th:if="${param.onlyCustomer}"
+         class="alert alert-error">
+        Only customers can log in here.
+    </div>
 
     <form th:action="@{/customer/login}" method="post">
         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
